@@ -1,7 +1,9 @@
 🚀 AlarmDecoder Dockerization Guide (Raspberry Pi)
+
 📘 Overview
 
 This guide documents the process of Dockerizing the AlarmDecoder WebApp on a Raspberry Pi. It includes installation, environment setup, persistent database configuration, and troubleshooting steps based on real-world deployment.
+
 📌 Prerequisites
 
 Ensure the following before starting:
@@ -84,6 +86,7 @@ HOME=/home/pi
 docker compose up -d
 
 🔁(Optional) Use a Systemd Service to Start Docker Compose
+
 If the above does not work reliably, create a systemd service for docker-compose:
 	• sudo nano /etc/systemd/system/alarmdecoder.service
 Paste this inside:
@@ -112,6 +115,7 @@ Then enable the service:
 This ensures docker-compose up -d runs automatically on boot.
 
 🛠️ Known Issues Solved
+
 Issue	Resolution
 db.sqlite not created	Added ensure_database() and ENV SQLALCHEMY_DATABASE_URI
 Flask context errors	Wrapped db actions with app.app_context()
