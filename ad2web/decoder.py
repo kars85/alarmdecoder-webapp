@@ -14,10 +14,10 @@ try:
 except ImportError:
     has_upnp = False
 
-from socketio import socketio_manage
-from socketio.namespace import BaseNamespace
-from socketio.mixins import BroadcastMixin
-from socketio.server import SocketIOServer
+from flask_socketio import SocketIO
+from socketio import Namespace as BaseNamespace
+#from socketio.mixins import BroadcastMixin
+#from socketio.server import SocketIOServer
 from socketioflaskdebug.debugger import SocketIODebugger
 
 from sqlalchemy.orm.exc import NoResultFound
@@ -81,9 +81,12 @@ EVENT_MAP = {
 decodersocket = Blueprint('sock', __name__, url_prefix='/socket.io')
 
 def create_decoder_socket(app):
-    debugged_app = SocketIODebugger(app, namespace=DecoderNamespace)
+    """Create and return a Flask-SocketIO instance to handle WebSockets."""
+    socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins="*")
+    # Register the decoder namespace
+    socketio.on_namespace(DecoderNamespace('/alarmdecoder'))
 
-    return SocketIOServer(('', int(os.getenv('AD_LISTENER_PORT', '5000'))), debugged_app, resource="socket.io")
+    return socketio
 
 class Decoder(object):
     """
@@ -799,7 +802,7 @@ class ExportChecker(threading.Thread):
 
             time.sleep(self.TIMEOUT)
 
-class DecoderNamespace(BaseNamespace, BroadcastMixin):
+class DecoderNamespace(BaseNamespace):
     """
     Socket.IO namespace
     """
@@ -1065,7 +1068,8 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
 def handle_socketio(remaining):
     """Socket.IO route"""
     try:
-        socketio_manage(request.environ, {'/alarmdecoder': DecoderNamespace}, { "alarmdecoder": g.alarmdecoder, "request": request})
+        socketio = SocketIO()
+        socketio.on_namespace(DecoderNamespace('/alarmdecoder'))
 
     except Exception, err:
         current_app.logger.error("Exception while handling socketio connection", exc_info=True)

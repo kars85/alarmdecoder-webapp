@@ -9,13 +9,16 @@ import jsonpickle
 
 from flask import Flask, request, render_template, g, redirect, url_for
 from flask_babel import Babel
+from flask_login import current_user
 from flask_script import Manager
+from flask_socketio import SocketIO
 
 from alarmdecoder import AlarmDecoder
 from alarmdecoder.devices import SerialDevice
 
 from .config import DefaultConfig
-from .decoder import decodersocket, Decoder, create_decoder_socket
+from .decoder import Decoder
+from flask_socketio import SocketIO
 from .updater.views import updater
 from .user import User, user
 from .settings import settings
@@ -34,6 +37,9 @@ from .extensions import db, mail, login_manager, oid
 from .utils import INSTANCE_FOLDER_PATH
 from .cameras import cameras
 
+
+socketio = SocketIO()  # ✅ Ensure WebSockets are initialized
+
 # For import *
 __all__ = ['create_app']
 
@@ -47,7 +53,7 @@ DEFAULT_BLUEPRINTS = (
     certificate,
     log,
     keypad,
-    decodersocket,
+    # decodersocket,  # 🚫 Not a blueprint — remove this
     notifications,
     zones,
     setup,
@@ -126,6 +132,7 @@ class ReverseProxied(object):
 
         return self.app(environ, start_response)
 
+
 def create_app(config=None, app_name=None, blueprints=None):
     """Create a Flask app."""
 
@@ -145,16 +152,28 @@ def create_app(config=None, app_name=None, blueprints=None):
     configure_template_filters(app)
     configure_error_handlers(app)
 
-    appsocket = create_decoder_socket(app)
-    decoder = Decoder(app, appsocket)
-    manager = Manager(app)
+    # ✅ Create a Flask-SocketIO instance instead
+    socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins="*")
+
+    # ✅ Initialize the decoder without create_decoder_socket()
+    decoder = Decoder(app, socketio)
     app.decoder = decoder
 
-    return app, appsocket
+    # ✅ Properly initialize Flask-SocketIO
+    socketio.init_app(app, async_mode="threading")
+
+    # ✅ Inject user authentication safely
+    @app.context_processor
+    def inject_user():
+        return {'user_is_authenticated': getattr(current_user, "is_authenticated", False)}
+
+    return app, None
+
 
 def init_app(app, appsocket):
     def signal_handler(signal, frame):
-        appsocket.stop()
+        if appsocket:
+            appsocket.stop()
         app.decoder.stop()
         os._exit(0)
 
