@@ -1,3 +1,5 @@
+Prebuilt image available at: https://hub.docker.com/r/kars85/alarmdecoder-webapp
+
 🚀 AlarmDecoder Dockerization Guide (Raspberry Pi)
 
 📘 Overview
