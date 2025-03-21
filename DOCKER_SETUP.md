@@ -79,9 +79,37 @@ PGID=1000
 TZ=America/New_York
 HOME=/home/pi
 
-Launch the app
+🚀 Launch the app
 
 docker compose up -d
+
+🔁(Optional) Use a Systemd Service to Start Docker Compose
+If the above does not work reliably, create a systemd service for docker-compose:
+	• sudo nano /etc/systemd/system/alarmdecoder.service
+Paste this inside:
+	[Unit]
+	Description=AlarmDecoder WebApp Container
+	Requires=docker.service
+	After=docker.service
+	
+	[Service]
+	WorkingDirectory=/home/YOURUSERNAME
+	ExecStart=/usr/local/bin/docker-compose up -d
+	ExecStop=/usr/local/bin/docker-compose down
+	Restart=always
+	User=USERNAME
+	
+	[Install]
+	WantedBy=multi-user.target
+	
+📌 (Replace /home/USERNAME with your actual home directory path and User= with your pi's username.)
+
+Then enable the service:
+	sudo systemctl daemon-reload
+	sudo systemctl enable alarmdecoder
+	sudo systemctl start alarmdecoder
+	
+This ensures docker-compose up -d runs automatically on boot.
 
 🛠️ Known Issues Solved
 Issue	Resolution
