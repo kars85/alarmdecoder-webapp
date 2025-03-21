@@ -1,281 +1,121 @@
-# AlarmDecoder Webapp
+🚀 AlarmDecoder Dockerization Guide (Raspberry Pi)
+Up-to-Date Documentation (With Fixes)
 
-## Summary
+This guide documents the steps to Dockerize AlarmDecoder on a Raspberry Pi, including installation, environment setup, database handling, and troubleshooting. It has been updated based on the challenges encountered and resolved during the process.
+📌 Prerequisites
 
-This is the home of the official webapp for the [AlarmDecoder](http://www.alarmdecoder.com) family of home security devices.
+Before proceeding, ensure you have:
 
-![Keypad Screenshot](http://github.com/nutechsoftware/alarmdecoder-webapp/raw/master/screenshot.png "Keypad Screenshot")
+    ✅ Raspberry Pi OS (64-bit recommended)
+    ✅ Docker installed on Raspberry Pi
+    ✅ AlarmDecoder hardware connected (AD2Pi "hat")
+    ✅ A stable internet connection for package installations
 
-## Features
+📌 Install Required Dependencies
 
-- Supports all of the [AlarmDecoder](http://www.alarmdecoder.com) devices: AD2USB, AD2SERIAL and AD2PI.
-- Web-based keypad for your alarm system
-- Notifications on alarm events
-- Multiple user accounts and per-user notifications and certificates (if configured)
+Ensure your Raspberry Pi has the necessary system packages installed for Docker and AlarmDecoder.
 
-## Installation
+    Update and install dependencies
+        Run sudo apt update && sudo apt install -y apt-transport-https ca-certificates curl software-properties-common git sudo
+    Install Docker
+        Run curl -fsSL https://get.docker.com | sh
+        Add your user to the Docker group: sudo usermod -aG docker $USER
+    Restart your terminal session or run
+        newgrp docker
 
-### Requirements
+📌 Clone AlarmDecoder Repositories
 
-- nginx >= 1.6
-- gunicorn
+Clone the two required repositories for AlarmDecoder:
 
-NOTE: Other web and WSGI servers will likely work but will require configuration.
+    git clone https://github.com/nutechsoftware/alarmdecoder.git ~/alarmdecoder
+    git clone https://github.com/nutechsoftware/alarmdecoder-webapp.git ~/alarmdecoder-webapp
 
-### Pre-installed Image
+📌 Dockerfile for AlarmDecoder (Python 2.7)
 
-If you're running on a Raspberry Pi the easiest way to get started is to download our pre-configured Raspbian image.  The image can be found at [here](http://www.alarmdecoder.com/wiki/index.php/Raspberry_Pi).
+Since AlarmDecoder relies on Python 2.7, we need to manually configure an ARM-compatible Docker image.
+Create a Dockerfile in ~/alarmdecoder/
 
-### Manual Installation
+    Uses Python 2.7 for ARM (Raspberry Pi 32-bit)
+    Installs system dependencies like libffi-dev, sqlite3
+    Copies and installs AlarmDecoder
 
-If you would rather do it by hand you can follow these steps using a Raspbian 9 base image:
-You can also look at the [PiBakery](contrib/PiBakery/) recipe for the steps. This presumes you will be the pi user with a monitor and keyboard attached to the Pi. Optionally you can connect over the network after enabling ssh and WiFi. See also [Headless wifi setup](https://www.raspberrypi.org/documentation/configuration/wireless/headless.md)
-* Enable SSH at boot (optional)
-```
-sudo touch /boot/ssh
-sudo rm /etc/ssh/ssh_host_*; dpkg-reconfigure openssh-server # !!Change keys!!
-```
-* Set default user password to 'raspberry' (user configuration)
-```
-passwd
-```
-* Modify config.txt to enable the GPIO UART and force cpu to turbo tested on Pi3, PiB, Pi3B+ and PiZero
-```
-sudo sed -i '/enable_uart\|pi3-miniuart-bt-overlay\|force_turbo/d' /boot/config.txt
-```  
-* Disable serial console so the kernel does not try to talk to the AD2Pi on the GPIO header  
-```
-sudo raspi-config nonint do_serial 1
-```
-* Set hostname to AlarmDecoder
-```
-sudo hostname AlarmDecoder
-```
-* Set country code for WIFI (user option)
-```
-sudo raspi-config nonint do_wifi_country US
-```
-* Set TZ (user option) (user option)
-```
-sudo raspi-config nonint do_change_timezone America/Los_Angeles
-```
-* Set the Keyboard layout and language (user option)
-```
-sudo raspi-config nonint do_configure_keyboard US pc101
-```
-* Setup WiFi (optional) see also [Headless wifi setup](https://www.raspberrypi.org/documentation/configuration/wireless/headless.md)
-```
-sudo echo -E '
-network={
-    ssid="«your_SSID»"
-    psk="«your_PSK»"
-    key_mgmt=WPA-PSK
-}' >> /etc/wpa_supplicant/wpa_supplicant.conf
-```
-* Resize the file system and reboot
-```
-sudo raspi-config nonint do_expand_rootfs
-```
-* Update repositories.
-```
-sudo apt-get update
-```
-* Install packages
-```
-sudo apt-get install \
-  autoconf \
-  automake \
-  build-essential \
-  cmake \
-  cmake-data \
-  git \
-  gunicorn \
-  libcurl4-openssl-dev \
-  libffi-dev \
-  libpcre3-dev \
-  libpcre++-dev \
-  libssl-dev \
-  minicom \
-  miniupnpc \
-  nginx \
-  python2.7-dev \
-  python-dev \
-  python-httplib2 \
-  python-opencv \
-  python-pip \
-  python-virtualenv \
-  screen \
-  sendmail \
-  sqlite3 \
-  telnet \
-  vim \
-  zlib1g-dev
-```
-* Update pip
-```
-sudo pip install --upgrade pip
-```
-* Update pip setuptools
-```
-sudo pip install --upgrade setuptools
-```
-* Create needed directories and set permissions for updates
-```
-sudo mkdir -p /opt/alarmdecoder /opt/alarmdecoder-webapp && sudo chown pi:pi /opt/alarmdecoder /opt/alarmdecoder-webapp
-```
-* Grab the latest master branch of the AlarmDecoder Python API
-```
-cd /opt && git clone https://github.com/nutechsoftware/alarmdecoder.git
-```
-* Grab the latest master branch of the AlarmDecoder web services app
-```
-cd /opt && git clone https://github.com/nutechsoftware/alarmdecoder-webapp.git
-```
-* Add Python requirements to the entire system as root
-```
-cd /opt/alarmdecoder-webapp/ && sudo pip install -r requirements.txt
-```
-* Add ser2sock
-```
-cd /opt && sudo git clone https://github.com/nutechsoftware/ser2sock.git
-cd /opt/ser2sock/ && sudo ./configure && sudo make && sudo cp ./ser2sock /usr/local/bin/
-```
-* Allow pi user to have r/w access to serial ports and a few key files for the WEB services to udpate by adding them to the same group and adding +w on that group
-```
-sudo usermod -a -G dialout pi
-sudo chgrp dialout /etc/hosts /etc/hostname
-sudo chmod g+w /etc/hosts /etc/hostname
-```
-* Create a ser2sock config folder owned by pi in etc and add config and update it
-```
-sudo mkdir -p /etc/ser2sock && sudo cp /opt/ser2sock/etc/ser2sock/ser2sock.conf /etc/ser2sock/ && sudo chown -R pi:pi /etc/ser2sock
-sudo sed -i 's/raw_device_mode = 0/raw_device_mode = 1/g' /etc/ser2sock/ser2sock.conf
-sudo sed -i 's/device = \/dev\/ttyAMA0/device = \/dev\/serial0/g' /etc/ser2sock/ser2sock.conf
-```
-* Set ser2sock to start at boot as user pi
-```
-sudo cp /opt/ser2sock/init/ser2sock /etc/init.d/
-sudo sed -i 's/EXTRA_START_ARGS=/#EXTRA_START_ARGS=/g' /etc/init.d/ser2sock
-sudo sed -i 's/#RUN_AS=.*/RUN_AS=pi:pi/g' /etc/init.d/ser2sock
-sudo update-rc.d ser2sock defaults
-```  
-* Enable the avahi service
-```
-cat <<EOF | sudo tee /etc/avahi/services/alarmdecoder.service
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-        <name replace-wildcards="yes">%h</name>
-        <service>
-                <type>_device-info._tcp</type>
-                <port>0</port>
-                <txt-record>model=AlarmDecoder</txt-record>
-        </service>
-        <service>
-                <type>_ssh._tcp</type>
-                <port>22</port>
-        </service>
-</service-group>
-EOF
-```
-* Create nginx ssl folder
-```
-sudo mkdir -p /etc/nginx/ssl
-```
-* Remove all default web content
-```
-sudo rm -r /var/www/html/
-```
-* Enable gunicorn service and tuning for Alarmdecoder webapp
-```
-cat <<EOF | sudo tee /etc/systemd/system/gunicorn.service > /dev/null
-[Unit]
-Description=gunicorn daemon
-After=network.target
+Build the Docker image:
 
-[Service]
-PIDFile=/run/gunicorn/pid
-User=pi
-Group=dialout
-WorkingDirectory=/opt/alarmdecoder-webapp
-Environment="TERM=vt100"
-ExecStart=/usr/bin/gunicorn --worker-class=socketio.sgunicorn.GeventSocketIOWorker --timeout=120 --env=POLICY_SERVER=0 --log-level=debug wsgi:application
-ExecReload=/bin/kill -s HUP $MAINPID
-ExecStop=/bin/kill -s TERM $MAINPID
-PrivateTmp=true
+    Run cd ~/alarmdecoder
+    Run docker build -t alarmdecoder-python2 .
 
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-* Enable gunicorn server and set to start at boot
-```
-sudo systemctl daemon-reload
-sudo systemctl enable gunicorn
-```
-* Enable log rotate for webapp and gunicorn
-```
-cat <<EOF | sudo tee /etc/logrotate.d/alarmdecoder > /dev/null
-/opt/alarmdecoder-webapp/instance/logs/*.log {
-  weekly
-  missingok
-  rotate 5
-  compress
-  delaycompress
-  notifempty
-  create 0640 pi pi
-  sharedscripts
-}
-EOF
+📌 Dockerfile for AlarmDecoder-WebApp
 
-cat <<'EOF' | sudo tee /etc/logrotate.d/gunicorn > /dev/null
-/var/log/gunicorn/*.log {
-  weekly
-  missingok
-  rotate 5
-  compress
-  delaycompress
-  notifempty
-  create 0640 www-data www-data
-  sharedscripts
-  postrotate
-    [ -s /run/gunicorn/alarmdecoder.pid ] && kill -USR1 `cat /run/gunicorn/alarmdecoder.pid`
-  endscript
-}
-EOF
-```
-* Create gunicorn app config directory and add our app configuration
-```
-sudo mkdir /etc/gunicorn.d/
-sudo cp /opt/alarmdecoder-webapp/contrib/gunicorn.d/alarmdecoder /etc/gunicorn.d/
-```
-* Generate an ssl certificate for the webapp
-```
-sudo openssl req \
-  -x509 -nodes -sha256 -days 3650 -newkey rsa:4096 \
-  -keyout /etc/nginx/ssl/alarmdecoder.key \
-  -out /etc/nginx/ssl/alarmdecoder.crt \
-  -subj '/CN=AlarmDecoder.local/O=AlarmDecoder.com/C=US'
-```
-* Remove the default site and add the alarmdecoder nginx site configuration and enable it
-```
-sudo rm /etc/nginx/sites-enabled/default
-sudo cp /opt/alarmdecoder-webapp/contrib/nginx/alarmdecoder /etc/nginx/sites-available/
-sudo ln -s /etc/nginx/sites-available/alarmdecoder /etc/nginx/sites-enabled/
-```
-* Enable `nginx` service
-```
-sudo systemctl enable nginx
-```
-* Init the AD2Web database as pi user
-```
-cd /opt/alarmdecoder-webapp/ && python manage.py initdb
-```
+Since the web app depends on AlarmDecoder, we need to include it in the image.
+Create a Dockerfile in ~/alarmdecoder-webapp/
 
-## Support
+    Uses Python 2.7 for ARM
+    Ensures SQLite database is correctly created
+    Installs dependencies and AlarmDecoder
+    Exposes port 5000 for the web app
 
-Please visit our [forums](http://www.alarmdecoder.com/forums/).
+Build the web app Docker image:
 
-## Contributing
+    Run cd ~/alarmdecoder-webapp
+    Run docker build -t alarmdecoder-webapp .
 
-We love the open-source community and welcome any contributions!  Just submit a pull request through [Github](http://github.com).
+📌 Deploying with Docker Compose
+
+Instead of running Docker manually, we use Docker Compose to ensure automatic startup and persistent settings.
+Create a docker-compose.yml file in ~/
+
+    Ensure it contains the correct volume mappings and environment variables.
+
+Run the application using Docker Compose:
+
+    Run cd ~
+    Run docker compose up -d
+
+Verify that it’s running:
+
+    Run docker ps
+
+Test in a browser:
+
+    Go to http://<raspberry_pi_ip>:5000/
+
+⚠️ Database Troubleshooting Notes
+
+At this stage, we had database initialization issues. Below is a record of the commands that did NOT work so we can avoid retrying them in the future.
+❌ Commands That Did NOT Work
+
+    Running python manage.py initdb without SQLite installed
+        The command ran but did not create db.sqlite
+        Installing sqlite3 fixed this
+
+    Running initdb multiple times manually
+        The command completed, but no database was created
+
+    Setting SQLALCHEMY_DATABASE_URI manually at runtime
+        Running docker run --rm -it -e SQLALCHEMY_DATABASE_URI=sqlite:////opt/alarmdecoder-webapp/instance/db.sqlite alarmdecoder-webapp python manage.py initdb
+        ❌ Did not create db.sqlite
+
+    Checking if db.sqlite existed in the container
+        Running docker run --rm -it alarmdecoder-webapp ls -lah /opt/alarmdecoder-webapp/instance
+        ❌ The database file was missing
+
+    Manually creating db.sqlite inside the container
+        Running docker run --rm -it alarmdecoder-webapp sqlite3 /opt/alarmdecoder-webapp/instance/db.sqlite "CREATE TABLE test (id INTEGER PRIMARY KEY);"
+        ❌ This initially failed because sqlite3 was missing
+        ✅ Installing sqlite3 resolved this
+
+    Checking SQLALCHEMY_DATABASE_URI inside the container
+        Running docker run --rm -it alarmdecoder-webapp python -c "import os; print(os.environ.get('SQLALCHEMY_DATABASE_URI'))"
+        ❌ Returned None, meaning it wasn't set
+        ✅ Adding ENV SQLALCHEMY_DATABASE_URI in Dockerfile fixed this
+
+📌 Final Outcome
+
+✅ The database (db.sqlite) is now correctly created and persists
+✅ Web app runs successfully at http://<raspberry_pi_ip>:5000/
+✅ Database no longer disappears after restarting the container
+📌 Next Steps
+
+    Upgrade to Python 3 (Python 2 is deprecated)
+    Use a Production-Ready WSGI Server (like Gunicorn instead of Flask’s development server)
+    Consider Docker Compose for managing the web app and database separately
