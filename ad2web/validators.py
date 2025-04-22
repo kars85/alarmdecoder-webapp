@@ -1,12 +1,11 @@
-from __future__ import absolute_import
 import os
 
 from wtforms.validators import ValidationError
 
-class PathExists(object):
+class PathExists:
     def __init__(self, message=None):
         if not message:
-            message = u'Path does not exist.'
+            message = 'Path does not exist.'
 
         self.message = message
 
@@ -16,10 +15,10 @@ class PathExists(object):
         if not os.path.exists(f):
             raise ValidationError(self.message)
 
-class Hex(object):
+class Hex:
     def __init__(self, message=None):
         if not message:
-            message = u'Number must be hexadecimal.'
+            message = 'Number must be hexadecimal.'
 
         self.message = message
 

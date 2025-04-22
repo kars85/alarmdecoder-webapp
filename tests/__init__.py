@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     Unit Tests
     ~~~~~~~~~~
@@ -7,7 +6,6 @@
     Ref: http://packages.python.org/Flask-Testing/
 """
 
-from __future__ import absolute_import
 from flask_testing import TestCase as Base, Twill
 
 from ad2web import create_app
@@ -30,31 +28,31 @@ class TestCase(Base):
     def init_data(self):
 
         demo = User(
-                name=u'demo',
-                email=u'demo@example.com',
-                password=u'123456',
+                name='demo',
+                email='demo@example.com',
+                password='123456',
                 role_code=USER,
                 status_code=ACTIVE,
                 user_detail=UserDetail(
                     sex_code=MALE,
                     age=10,
-                    url=u'http://demo.example.com',
+                    url='http://demo.example.com',
                     deposit=100.00,
-                    location=u'Hangzhou',
-                    bio=u'admin Guy is ... hmm ... just a demo guy.'))
+                    location='Hangzhou',
+                    bio='admin Guy is ... hmm ... just a demo guy.'))
         admin = User(
-                name=u'admin',
-                email=u'admin@example.com',
-                password=u'123456',
+                name='admin',
+                email='admin@example.com',
+                password='123456',
                 role_code=ADMIN,
                 status_code=ACTIVE,
                 user_detail=UserDetail(
                     sex_code=MALE,
                     age=10,
-                    url=u'http://admin.example.com',
+                    url='http://admin.example.com',
                     deposit=100.00,
-                    location=u'Hangzhou',
-                    bio=u'admin Guy is ... hmm ... just a admin guy.'))
+                    location='Hangzhou',
+                    bio='admin Guy is ... hmm ... just a admin guy.'))
         db.session.add(demo)
         db.session.add(admin)
         db.session.commit()

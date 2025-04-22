@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-
 # http://docs.fabfile.org/en/1.5/tutorial.html
 
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 
 from fabric.api import *
@@ -32,8 +28,8 @@ def reset():
     Reset local debug env.
     """
 
-    local("rm -rf {0}".format(INSTANCE_FOLDER_PATH))
-    local("mkdir {0}".format(INSTANCE_FOLDER_PATH))
+    local("rm -rf {}".format(INSTANCE_FOLDER_PATH))
+    local("mkdir {}".format(INSTANCE_FOLDER_PATH))
     local("python manage.py initdb")
 
 

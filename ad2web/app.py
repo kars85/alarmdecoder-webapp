@@ -1,19 +1,20 @@
-# -*- coding: utf-8 -*-
+import flask.helpers
+try:
+    from flask.helpers import locked_cached_property
+except ImportError:
+    from werkzeug.utils import cached_property as locked_cached_property
+    flask.helpers.locked_cached_property = locked_cached_property
 
-from __future__ import absolute_import
 from gevent import monkey
 monkey.patch_all()
 
 import os
 import signal
-import jsonpickle
 
 from flask import Flask, request, render_template, g, redirect, url_for
 from flask_babel import Babel
-from flask_script import Manager
 
-from alarmdecoder import AlarmDecoder
-from alarmdecoder.devices import SerialDevice
+
 
 from .config import DefaultConfig
 from .decoder import decodersocket, Decoder, create_decoder_socket
@@ -56,7 +57,7 @@ DEFAULT_BLUEPRINTS = (
     cameras,
 )
 
-class ReverseProxied(object):
+class ReverseProxied:
     '''Wrap the application in this middleware and configure the
     front-end server to add these headers, to let you quietly bind
     this to a URL other than / and to an HTTP scheme that is
@@ -148,7 +149,7 @@ def create_app(config=None, app_name=None, blueprints=None):
 
     appsocket = create_decoder_socket(app)
     decoder = Decoder(app, appsocket)
-    manager = Manager(app)
+    #manager = Manager(app)
     app.decoder = decoder
 
     return app, appsocket
@@ -171,7 +172,7 @@ def init_app(app, appsocket):
                 app.logger.error("Could not find 'settings' table in the database.  You may need to run 'python manage.py initdb'.")
                 os._exit(0)
 
-    except Exception as err:
+    except Exception:
         app.logger.error("Error", exc_info=True)
 
 def configure_app(app, config=None):
@@ -240,7 +241,6 @@ def configure_logging(app):
     """Configure file(info) and email(error) logging."""
 
     import logging
-    from logging.handlers import SMTPHandler
 
     # Set info level on logger, which might be overwritten by handers.
     # Suppress DEBUG messages.
@@ -287,7 +287,7 @@ def configure_hook(app):
             elif SETUP_ENDPOINT_STAGE[request.endpoint] > setup_stage:
                 return redirect(url_for(SETUP_STAGE_ENDPOINT[setup_stage]))
 
-        elif not request.blueprint in safe_blueprints:
+        elif request.blueprint not in safe_blueprints:
             setup_stage = Setting.get_by_name('setup_stage').value
             # If setup hasn't been started, force them to the index.
             if setup_stage is None:

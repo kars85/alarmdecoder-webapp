@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Certificate types
 CA = 0
 SERVER = 1

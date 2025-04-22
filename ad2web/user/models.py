@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from sqlalchemy import Column, types
 from sqlalchemy.ext.mutable import Mutable
 from werkzeug import generate_password_hash, check_password_hash
@@ -30,7 +27,7 @@ class DenormalizedText(Mutable, types.TypeDecorator):
         self.coerce = coerce
         self.separator = separator
 
-        super(DenormalizedText, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def process_bind_param(self, value, dialect):
         if value is not None:
@@ -41,7 +38,7 @@ class DenormalizedText(Mutable, types.TypeDecorator):
     def process_result_value(self, value, dialect):
         if not value:
             return set()
-        return set(self.coerce(item) for item in value.split(self.separator))
+        return {self.coerce(item) for item in value.split(self.separator)}
 
     def copy_value(self, value):
         return set(value)

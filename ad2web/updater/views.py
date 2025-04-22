@@ -1,22 +1,19 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import os
 import json
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
 import zipfile
 
-from flask import Blueprint, render_template, abort, g, request, flash, Response, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask import current_app as APP
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from werkzeug import secure_filename
 
-from ..extensions import db
 from ..decorators import admin_required
 
 from .forms import UpdateFirmwareForm, UpdateFirmwareJSONForm
-from .models import FirmwareUpdater
 from .constants import FIRMWARE_JSON_URL
 import six
 
@@ -42,7 +39,7 @@ def update():
     if component is not None:
         ret = APP.decoder.updater.update(component)
 
-    return json.dumps(ret);
+    return json.dumps(ret)
 
 @updater.route('/restart', methods=['POST'])
 @login_required
@@ -61,7 +58,7 @@ def checkavailable():
 @admin_required
 def check_for_updates():
     APP.decoder.updates = APP.decoder.updater.check_updates()
-    update_available = not all(not needs_update for component, (needs_update, branch, revision, new_revision, status, project_url) in six.iteritems(APP.decoder.updates))
+    update_available = not all(not needs_update for component, (needs_update, branch, revision, new_revision, status, project_url) in APP.decoder.updates.items())
     APP.jinja_env.globals['update_available'] = update_available
 
     return redirect(url_for('update.index'))
@@ -79,11 +76,11 @@ def update_firmware():
     data = None
     try:
         response = six.moves.urllib.request.urlopen(FIRMWARE_JSON_URL)
-    except IOError:
+    except OSError:
         flash('Cannot connect to alarmdecoder server', 'error')
         all_ok = "false"
 
-    if all_ok is "true":
+    if all_ok == "true":
         data = json.loads(response.read())
 
         counter = 0
@@ -112,7 +109,7 @@ def update_firmware():
 
         APP.jinja_env.globals['firmware_update_available'] = False
 
-        return jsonify(return_data);
+        return jsonify(return_data)
 
     if form2.is_submitted():
         uploaded_file = request.files.getlist('file')
@@ -134,7 +131,7 @@ def update_firmware():
 
         return jsonify(return_data)
 
-    return render_template('updater/firmware_json.html', current_firmware=current_firmware, form=form, form2=form2, firmwarejson=data, all_ok=all_ok);
+    return render_template('updater/firmware_json.html', current_firmware=current_firmware, form=form, form2=form2, firmwarejson=data, all_ok=all_ok)
 
 @updater.route('/firmware', methods=['GET', 'POST'])
 @login_required

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from ad2web.user import User, UserDetail
 
 from tests import TestCase

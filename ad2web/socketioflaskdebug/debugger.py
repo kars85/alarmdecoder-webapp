@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from __future__ import print_function
 from werkzeug.debug import DebuggedApplication
 from types import GeneratorType
 import sys
@@ -19,7 +15,7 @@ class SocketIODebugger(DebuggedApplication):
         """
         namespace = kwargs.pop('namespace', None)
         self.exc_info = None
-        super(SocketIODebugger, self).__init__(app, **kwargs)
+        super().__init__(app, **kwargs)
         if namespace is not None:
             self.protect_namespace(namespace)
             if hasattr(self.app, 'before_request'):
@@ -51,7 +47,7 @@ class SocketIODebugger(DebuggedApplication):
         This function extracts the results from the generator returned by the __call__
         method of werkzeug.debug.DebuggedApplication in case of socket requests.
         """
-        result = super(SocketIODebugger, self).__call__(environ, start_response)
+        result = super().__call__(environ, start_response)
         if 'socketio' in environ and isinstance(result, GeneratorType):
             for _ in result:
                 pass
@@ -66,4 +62,4 @@ class SocketIODebugger(DebuggedApplication):
         if self.exc_info is not None:
             exc_type, exc_value, exc_traceback = self.exc_info
             self.exc_info = None
-            six.reraise(exc_type, exc_value, exc_traceback)
+            raise exc_value.with_traceback(exc_traceback)

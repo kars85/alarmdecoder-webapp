@@ -1,16 +1,13 @@
-from __future__ import absolute_import
 from flask import (Blueprint, render_template, current_app, request, flash,
                     redirect, url_for, abort)
 from flask_login import login_required, current_user
 
-from wtforms import FormField, TextField
 from sqlalchemy.orm.session import make_transient
 
 from ..extensions import db
 from ..settings import Setting
 from ..zones import Zone
-from .forms import (CreateNotificationForm, EditNotificationForm,
-                    EditNotificationMessageForm,
+from .forms import (CreateNotificationForm, EditNotificationMessageForm,
                     EmailNotificationForm, PushoverNotificationForm,
                     TwilioNotificationForm, TwiMLNotificationForm, ProwlNotificationForm,
                     GrowlNotificationForm, CustomPostForm, ZoneFilterForm, ReviewNotificationForm,
@@ -22,7 +19,6 @@ from .constants import (EVENT_TYPES, NOTIFICATION_TYPES, DEFAULT_SUBSCRIPTIONS,
                         EMAIL, PUSHOVER, TWILIO, PROWL, GROWL,
                         CUSTOM, TWIML, MATRIX, ZONE_FAULT, ZONE_RESTORE,
                         UPNPPUSH)
-from six.moves import range
 
 NOTIFICATION_TYPE_DETAILS = {
     'email': (EMAIL, EmailNotificationForm),
@@ -155,13 +151,13 @@ def create_by_type(type):
                             ssl=use_ssl, legend=form.legend)
 
 def build_zone_list():
-    zone_list = [(str(i), "Zone {0:02d}".format(i)) for i in range(1, 100)]
+    zone_list = [(str(i), "Zone {:02d}".format(i)) for i in range(1, 100)]
 
     zones = Zone.query.all()
     zone_list_len = len(zone_list)
     for z in zones:
         if z.zone_id <= zone_list_len - 1:
-            zone_list[z.zone_id - 1] = (str(z.zone_id), 'Zone {0:02d} - {1}'.format(z.zone_id, z.name))
+            zone_list[z.zone_id - 1] = (str(z.zone_id), 'Zone {:02d} - {}'.format(z.zone_id, z.name))
 
     return zone_list
 
@@ -241,7 +237,7 @@ def toggle_notification(id):
 
     status = "Enabled"
 
-    if notification.enabled is 0:
+    if notification.enabled == 0:
         notification.enabled = 1
         status = "Enabled"
     else:
@@ -271,7 +267,7 @@ def review(id):
             error = current_app.decoder.test_notifier(notification.id)
 
             if error:
-                flash('Error sending test notification: {0}'.format(error), 'error')
+                flash('Error sending test notification: {}'.format(error), 'error')
             else:
                 flash('Test notification sent.', 'success')
         else:

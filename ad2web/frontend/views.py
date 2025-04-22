@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from uuid import uuid4
 
 from flask import (Blueprint, render_template, current_app, request,
@@ -13,7 +10,6 @@ from ..user import User, UserDetail, UserHistory, FailedLogin
 from ..extensions import db, mail, login_manager, oid
 from .forms import SignupForm, LoginForm, RecoverPasswordForm, ReauthForm, ChangePasswordForm, OpenIDForm, CreateProfileForm, LicenseAgreementForm
 from ..settings import Setting
-from socket import gethostname, gethostbyname
 from ..utils import user_is_authenticated
 
 frontend = Blueprint('frontend', __name__)

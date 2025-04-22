@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 
 import six.moves.configparser
@@ -6,7 +5,6 @@ import psutil
 import signal
 import sh
 from collections import OrderedDict
-from OpenSSL import crypto
 import six
 
 DEFAULT_SETTINGS = OrderedDict([
@@ -66,7 +64,7 @@ def save_config(path, config_values):
     # Include default entries
     config_entries = OrderedDict(list(DEFAULT_SETTINGS.items()) + list(config_values.items()))
 
-    for k, v in six.iteritems(config_entries):
+    for k, v in config_entries.items():
         config.set('ser2sock', k, str(v))
 
     with open(path, 'w') as configfile:
@@ -86,7 +84,7 @@ def start():
     """
     try:
         sh.ser2sock('-d', _bg=True)
-    except sh.CommandNotFound as err:
+    except sh.CommandNotFound:
         raise NotFound('Could not locate ser2sock.')
 
 def stop():
@@ -109,7 +107,7 @@ def hup():
                 found = True
                 os.kill(proc.pid, signal.SIGHUP)
         except OSError as err:
-            raise HupFailed('Error attempting to restart ser2sock (pid {0}): {1}'.format(proc.pid, err))
+            raise HupFailed('Error attempting to restart ser2sock (pid {}): {}'.format(proc.pid, err))
 
     if not found:
         start()
@@ -161,12 +159,12 @@ def update_config(path, *args, **kwargs):
                     ca_cert.export(cert_path)
                     server_cert.export(cert_path)
 
-                    config_values['ca_certificate'] = os.path.join(cert_path, '{0}.pem'.format(ca_cert.name))
-                    config_values['ssl_certificate'] = os.path.join(cert_path, '{0}.pem'.format(server_cert.name))
-                    config_values['ssl_key'] = os.path.join(cert_path, '{0}.key'.format(server_cert.name))
+                    config_values['ca_certificate'] = os.path.join(cert_path, '{}.pem'.format(ca_cert.name))
+                    config_values['ssl_certificate'] = os.path.join(cert_path, '{}.pem'.format(server_cert.name))
+                    config_values['ssl_key'] = os.path.join(cert_path, '{}.key'.format(server_cert.name))
 
             save_config(os.path.join(path, 'ser2sock.conf'), config_values)
             hup()
 
-    except (OSError, IOError) as err:
-        raise RuntimeError('Error updating ser2sock configuration: {0}'.format(err))
+    except OSError as err:
+        raise RuntimeError('Error updating ser2sock configuration: {}'.format(err))

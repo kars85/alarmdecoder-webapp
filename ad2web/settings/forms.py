@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import os
 import string
 import random
 from flask_wtf import FlaskForm as Form
 from wtforms.fields.html5 import URLField, EmailField, TelField
-from wtforms import (ValidationError, HiddenField, TextField, HiddenField,
+from wtforms import (ValidationError, TextField, HiddenField,
         PasswordField, SubmitField, TextAreaField, IntegerField, RadioField,
-        FileField, DecimalField, BooleanField, SelectField, FormField, FieldList)
+        FileField, DecimalField, BooleanField, SelectField)
 from wtforms.validators import (Required, Length, EqualTo, Email, NumberRange,
         URL, AnyOf, Optional, IPAddress)
 from flask_login import current_user
@@ -19,23 +16,22 @@ from ..utils import allowed_file, ALLOWED_AVATAR_EXTENSIONS, INSTANCE_FOLDER_PAT
 from ..utils import SEX_TYPE
 
 from ..widgets import ButtonField
-from ..settings import Setting
 from .constants import DAILY, WEEKLY, MONTHLY, NONE
 
 class ProfileForm(Form):
     multipart = True
     next = HiddenField()
-    email = EmailField(u'Email', [Required(), Email()])
+    email = EmailField('Email', [Required(), Email()])
     # Don't use the same name as model because we are going to use populate_obj().
-    avatar_file = FileField(u"Avatar", [Optional()])
-    sex_code = RadioField(u"Sex", [AnyOf([str(val) for val in SEX_TYPE.keys()])], choices=[(str(val), label) for val, label in SEX_TYPE.items()])
-    age = IntegerField(u'Age', [Optional(), NumberRange(AGE_MIN, AGE_MAX)])
-    phone = TelField(u'Phone', [Length(max=64)])
-    url = URLField(u'URL', [Optional(), URL()])
-    deposit = DecimalField(u'Deposit', [Optional(), NumberRange(DEPOSIT_MIN, DEPOSIT_MAX)])
-    location = TextField(u'Location', [Length(max=64)])
-    bio = TextAreaField(u'Bio', [Length(max=1024)])
-    submit = SubmitField(u'Save')
+    avatar_file = FileField("Avatar", [Optional()])
+    sex_code = RadioField("Sex", [AnyOf([str(val) for val in SEX_TYPE.keys()])], choices=[(str(val), label) for val, label in SEX_TYPE.items()])
+    age = IntegerField('Age', [Optional(), NumberRange(AGE_MIN, AGE_MAX)])
+    phone = TelField('Phone', [Length(max=64)])
+    url = URLField('URL', [Optional(), URL()])
+    deposit = DecimalField('Deposit', [Optional(), NumberRange(DEPOSIT_MIN, DEPOSIT_MAX)])
+    location = TextField('Location', [Length(max=64)])
+    bio = TextAreaField('Bio', [Length(max=1024)])
+    submit = SubmitField('Save')
 
     def validate_name(form, field):
         user = User.get_by_id(current_user.id)
@@ -52,8 +48,8 @@ class PasswordForm(Form):
     password = PasswordField('Current password', [Required()])
     new_password = PasswordField('New password', [Required(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX)])
     password_again = PasswordField('Password again', [Required(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX), EqualTo('new_password')])
-    submit = SubmitField(u'Save')
-    cancel = ButtonField(u'Cancel', onclick="location.href='/settings'")
+    submit = SubmitField('Save')
+    cancel = ButtonField('Cancel', onclick="location.href='/settings'")
 
     def validate_password(form, field):
         user = User.get_by_id(current_user.id)
@@ -61,14 +57,14 @@ class PasswordForm(Form):
             raise ValidationError("Password is wrong.")
 
 class ImportSettingsForm(Form):
-    import_file = FileField(u'Settings Archive', [Required()])
+    import_file = FileField('Settings Archive', [Required()])
 
-    submit = SubmitField(u'Import')
+    submit = SubmitField('Import')
 
 class HostSettingsForm(Form):
-    hostname = TextField(u'Hostname', [Required(), Length(max=63)])
-    submit = SubmitField(u'Save')
-    cancel = ButtonField(u'Cancel', onclick="location.href='/settings/host'")
+    hostname = TextField('Hostname', [Required(), Length(max=63)])
+    submit = SubmitField('Save')
+    cancel = ButtonField('Cancel', onclick="location.href='/settings/host'")
 
     def validate_hostname(form, field):
         invalid = " !'\"?;:,@#$%^&*()+<>/|\\{}[]_"
@@ -87,53 +83,53 @@ class HostSettingsForm(Form):
             raise ValidationError("Invalid characters found - Please remove any of the following: " + invalid)
 
 class EthernetSelectionForm(Form):
-    ethernet_devices =  SelectField(u'Network Device', choices=[('eth0', u'eth0')], default='eth0', coerce=str)
-    submit = SubmitField(u'Configure')
+    ethernet_devices =  SelectField('Network Device', choices=[('eth0', 'eth0')], default='eth0', coerce=str)
+    submit = SubmitField('Configure')
 
 class EthernetConfigureForm(Form):
     ethernet_device = HiddenField()
-    connection_type = RadioField(u'Connection Type', choices=[('static', 'Static'), ('dhcp', 'DHCP')], default='dhcp', coerce=str)
+    connection_type = RadioField('Connection Type', choices=[('static', 'Static'), ('dhcp', 'DHCP')], default='dhcp', coerce=str)
     ip_address = TextField('IP Address', [IPAddress('Invalid IP Address')])
     gateway = TextField('Default Gateway', [IPAddress('Invalid Gateway IP Format')])
     netmask = TextField('Subnet Mask', [IPAddress('Invalid Subnet IP Format')])
-    submit = SubmitField(u'Save')
-    cancel = ButtonField(u'Cancel', onclick="location.href='/settings/host'")
+    submit = SubmitField('Save')
+    cancel = ButtonField('Cancel', onclick="location.href='/settings/host'")
 
 class SwitchBranchForm(Form):
-    remotes_web = SelectField(u'Origin alarmdecoder-webapp', coerce=str)
-    branches_web = SelectField(u'Branch', coerce=str)
-    remotes_api = SelectField(u'Origin alarmdecoder api', coerce=str)
-    branches_api = SelectField(u'Branch', coerce=str)
-    submit = SubmitField(u'Checkout')
+    remotes_web = SelectField('Origin alarmdecoder-webapp', coerce=str)
+    branches_web = SelectField('Branch', coerce=str)
+    remotes_api = SelectField('Origin alarmdecoder api', coerce=str)
+    branches_api = SelectField('Branch', coerce=str)
+    submit = SubmitField('Checkout')
 
 class EmailConfigureForm(Form):
-    mail_server = TextField(u'Email Server', [Required(), Length(max=255)], description=u'ex: smtp.gmail.com')
-    port = IntegerField(u'Server Port', [Required(), NumberRange(1, 65535)], description=u'ex: 25 for normal or 587 for TLS')
-    tls = BooleanField(u'Use TLS?', default=False)
-    auth_required = BooleanField(u'Authentication Required?',default=False)
-    username = TextField(u'Username', [Optional(), Length(max=255)], description=u'Email Username')
-    password = PasswordField(u'Password', [Optional(), Length(max=255)], description=u'Email Password')
-    default_sender = TextField(u'From Email', [Required(), Length(max=255)], default='root@alarmdecoder', description=u'Emails will come from this address')
-    submit = SubmitField(u'Save')
+    mail_server = TextField('Email Server', [Required(), Length(max=255)], description='ex: smtp.gmail.com')
+    port = IntegerField('Server Port', [Required(), NumberRange(1, 65535)], description='ex: 25 for normal or 587 for TLS')
+    tls = BooleanField('Use TLS?', default=False)
+    auth_required = BooleanField('Authentication Required?',default=False)
+    username = TextField('Username', [Optional(), Length(max=255)], description='Email Username')
+    password = PasswordField('Password', [Optional(), Length(max=255)], description='Email Password')
+    default_sender = TextField('From Email', [Required(), Length(max=255)], default='root@alarmdecoder', description='Emails will come from this address')
+    submit = SubmitField('Save')
 
 class UPNPForm(Form):
-    internal_port = IntegerField(u'Internal Port', [Required()], default=443, description=u'Internal Port to Forward To')
-    external_port = IntegerField(u'External Port', [Required()], default=random.randint(1200,60000), description=u'External Port to map to Internal Port')
+    internal_port = IntegerField('Internal Port', [Required()], default=443, description='Internal Port to Forward To')
+    external_port = IntegerField('External Port', [Required()], default=random.randint(1200,60000), description='External Port to map to Internal Port')
 
-    submit = SubmitField(u'Save')
+    submit = SubmitField('Save')
 
 class VersionCheckerForm(Form):
-    version_checker_timeout = IntegerField(u'Timeout in Seconds', [Required(), NumberRange(600)], default=600, description=u'How often to check for version updates')
-    version_checker_disable = BooleanField(u'Disable?', default=False)
+    version_checker_timeout = IntegerField('Timeout in Seconds', [Required(), NumberRange(600)], default=600, description='How often to check for version updates')
+    version_checker_disable = BooleanField('Disable?', default=False)
 
-    submit = SubmitField(u'Save')
+    submit = SubmitField('Save')
 
 class ExportConfigureForm(Form):
-    frequency = SelectField(u'Frequency', choices=[(NONE, u'None'), (DAILY, u'Daily'), (WEEKLY, u'Weekly'), (MONTHLY, u'Monthly')], default=NONE, description=u'Frequency of Automatic Export', coerce=int)
-    email = BooleanField(u'Email Export?', default=True)
-    email_address = TextField(u'Email Address', [Optional(), Length(max=255)], description=u'Email Address to Send Export to')
-    local_file = BooleanField(u'Save to Local File?', default=True)
-    local_file_path = TextField(u'Path to Save file', [Optional(), Length(max=255)], default=os.path.join(INSTANCE_FOLDER_PATH, 'exports'), description='Path on AlarmDecoder to Save Export')
-    days_to_keep = IntegerField(u'Days to Keep Exports on Disk?', [Optional(), NumberRange(1, 255)],default=7)
+    frequency = SelectField('Frequency', choices=[(NONE, 'None'), (DAILY, 'Daily'), (WEEKLY, 'Weekly'), (MONTHLY, 'Monthly')], default=NONE, description='Frequency of Automatic Export', coerce=int)
+    email = BooleanField('Email Export?', default=True)
+    email_address = TextField('Email Address', [Optional(), Length(max=255)], description='Email Address to Send Export to')
+    local_file = BooleanField('Save to Local File?', default=True)
+    local_file_path = TextField('Path to Save file', [Optional(), Length(max=255)], default=os.path.join(INSTANCE_FOLDER_PATH, 'exports'), description='Path on AlarmDecoder to Save Export')
+    days_to_keep = IntegerField('Days to Keep Exports on Disk?', [Optional(), NumberRange(1, 255)],default=7)
 
-    submit = SubmitField(u'Save')
+    submit = SubmitField('Save')

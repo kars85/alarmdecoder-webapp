@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ARM = 0
 DISARM = 1
 POWER_CHANGED = 2

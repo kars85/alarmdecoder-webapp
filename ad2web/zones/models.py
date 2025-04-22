@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from sqlalchemy import Column, types
-from sqlalchemy.ext.mutable import Mutable
+from sqlalchemy import Column
 
 from ..extensions import db
 

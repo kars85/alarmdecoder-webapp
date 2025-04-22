@@ -1,24 +1,26 @@
-# -*- coding: utf-8 -*-
 """
     Utils has nothing to do with models and views.
 """
 
-from __future__ import absolute_import
 import string
 import random
 import os
+import sys
 import io
 import tarfile
 import time
 
 from datetime import datetime
-from six.moves import range
 
 
 # Instance folder path, make it independent.
-INSTANCE_FOLDER_PATH = os.path.join('/opt', 'alarmdecoder-webapp', 'instance')
+if sys.platform.startswith('win'):
+    INSTANCE_FOLDER_PATH = os.path.join(os.getcwd(), 'instance')
+else:
+    INSTANCE_FOLDER_PATH = os.path.join('/opt', 'alarmdecoder-webapp', 'instance')
 
-ALLOWED_AVATAR_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
+
+ALLOWED_AVATAR_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Form validation
 
@@ -42,9 +44,9 @@ MALE = 1
 FEMALE = 2
 OTHER = 9
 SEX_TYPE = {
-    MALE: u'Male',
-    FEMALE: u'Female',
-    OTHER: u'Other',
+    MALE: 'Male',
+    FEMALE: 'Female',
+    OTHER: 'Other',
 }
 
 # Model
@@ -84,9 +86,9 @@ def pretty_date(dt, default=None):
             continue
 
         if period == 1:
-            return u'%d %s ago' % (period, singular)
+            return '%d %s ago' % (period, singular)
         else:
-            return u'%d %s ago' % (period, plural)
+            return '%d %s ago' % (period, plural)
 
     return default
 

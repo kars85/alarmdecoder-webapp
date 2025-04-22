@@ -1,19 +1,12 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from flask import Blueprint, render_template, abort, g, request, flash, Response, url_for, Markup, redirect
-from flask import current_app as APP
+from flask import Blueprint, render_template, flash, url_for, redirect
 from flask_login import login_required, current_user
 
 from ..extensions import db
-from ..decorators import admin_required
-from ..user import User
 from ..settings.models import Setting
 from alarmdecoder.panels import ADEMCO, DSC
 from alarmdecoder import AlarmDecoder
 from .forms import KeypadButtonForm
 from .models import KeypadButton
-from ..cameras import Camera
 from .forms import SpecialButtonFormAdemco, SpecialButtonFormDSC
 from .constants import FIRE, MEDICAL, POLICE, SPECIAL_4, SPECIAL_CUSTOM, STAY, AWAY, CHIME, RESET, EXIT, SPECIAL_KEY_MAP
 
@@ -292,7 +285,7 @@ def edit_button(id):
 def remove_button(id):
     button = KeypadButton.query.filter_by(button_id=id).first_or_404()
     db.session.delete(button)
-    db.session.commit();
+    db.session.commit()
 
     flash('Keypad Button deleted', 'success')
     return redirect(url_for('keypad.custom_index'))

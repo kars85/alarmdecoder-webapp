@@ -1,32 +1,86 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
+import datetime
+import signal
 import sys
 
-# Fix sys path if running from source.
-if __package__ is None and os.path.dirname(os.path.dirname(__file__)) not in sys.path:
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import werkzeug.serving
+from werkzeug.debug import DebuggedApplication
+from flask_script import Manager, Command
 
-from flask_script import Manager, Command, Option
+from alarmdecoder.util import NoDeviceError
 from ad2web import create_app, init_app
-from ad2web.commands import RunCommand, InitDBCommand # Import the commands
+from ad2web.decoder import Decoder
+from ad2web.extensions import db
+
+import logging
 
 app, appsocket = None, None
 
 def _create_app(**kwargs):
     global app, appsocket
 
-    app, appsocket = create_app() # Calls the function from ad2web/app.py
+    app, appsocket = create_app()
 
-    return app # Returns only the app object
+    return app
 
-# ... Commands ...
 
-manager = Manager(_create_app) # Manager is instantiated HERE using the factory function
+class RunCommand(Command):
+    def run(self):
+        """Run in local machine."""
+
+        @werkzeug.serving.run_with_reloader
+        def runDebugServer():
+            try:
+                init_app(app, appsocket)
+
+                app.debug = True
+                dapp = DebuggedApplication(app, evalex=True)
+                appsocket.serve_forever()
+
+            except Exception as err:
+                app.logger.error("Error", exc_info=True)
+
+        try:
+            runDebugServer()
+        except:
+            pass
+
+
+class InitDBCommand(Command):
+    def run(self):
+        """Init/reset database."""
+
+        try:
+            db.drop_all()
+            db.create_all()
+
+            # Initialize alembic revision
+            from alembic.config import Config
+            from alembic import command
+            alembic_cfg = Config('alembic.ini')
+            command.stamp(alembic_cfg, "head")
+
+            from ad2web.notifications.models import NotificationMessage
+            from ad2web.notifications.constants import DEFAULT_EVENT_MESSAGES
+
+            for event, message in DEFAULT_EVENT_MESSAGES.iteritems():
+                db.session.add(NotificationMessage(id=event, text=message))
+
+            db.session.commit()
+        except Exception as err:
+            print("Database initialization failed: {0}".format(err))
+        else:
+            print("Database initialization complete!")
+
+
+manager = Manager(_create_app)
 manager.add_command('run', RunCommand())
 manager.add_command('initdb', InitDBCommand())
-# ... options ...
+manager.add_option('-c', '--config',
+                   dest="config",
+                   required=False,
+                   help="config file")
 
 if __name__ == "__main__":
     manager.run()

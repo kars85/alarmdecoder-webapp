@@ -1,9 +1,8 @@
-from __future__ import absolute_import
 from wtforms.widgets import html_params, ListWidget, CheckboxInput
 from wtforms import Field, SelectMultipleField
 from flask import Markup 
 
-class ButtonWidget(object):
+class ButtonWidget:
     html_params = staticmethod(html_params)
     
     def __init__(self, text='', onclick='', **kwargs):
@@ -16,14 +15,14 @@ class ButtonWidget(object):
         if 'onclick' not in kwargs:
             kwargs['onclick'] = self.onclick
 
-        return Markup('<button type="button" class="btn btn-default" {0}>{1}</button>'.format(self.html_params(name=field.name, **kwargs), self.text))
+        return Markup('<button type="button" class="btn btn-default" {}>{}</button>'.format(self.html_params(name=field.name, **kwargs), self.text))
 
 
 class ButtonField(Field):
     widget = ButtonWidget()
 
     def __init__( self, label='', validators=None, onclick='', **kwargs):
-        super(ButtonField, self).__init__('', validators, **kwargs)
+        super().__init__('', validators, **kwargs)
         self.widget = ButtonWidget(text=label, onclick=onclick)
 
 

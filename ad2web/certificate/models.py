@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import os
 import datetime
 import tarfile
@@ -8,18 +5,14 @@ import io
 import time
 import tempfile
 import subprocess
-import OpenSSL.crypto
 
-from flask import current_app
 
-from OpenSSL import crypto, SSL
+from OpenSSL import crypto
 from sqlalchemy import Column, orm
 
 from ..extensions import db
 from ..settings.models import Setting
-from .constants import CERTIFICATE_TYPES, CA, SERVER, CLIENT, INTERNAL, \
-                        CERTIFICATE_STATUS, REVOKED, ACTIVE, EXPIRED, \
-                        PACKAGE_TYPES, TGZ, PKCS12, BKS, CRL_CODE
+from .constants import CA, REVOKED, TGZ, PKCS12, BKS, CRL_CODE
 from ..utils import tar_add_directory, tar_add_textfile
 
 class Certificate(db.Model):
@@ -42,12 +35,12 @@ class Certificate(db.Model):
     def init_on_load(self):
         try:
             self.key_obj = crypto.load_privatekey(crypto.FILETYPE_PEM, self.key)
-        except crypto.Error as err:
+        except crypto.Error:
             self.key_obj = None
 
         try:
             self.certificate_obj = crypto.load_certificate(crypto.FILETYPE_PEM, self.certificate)
-        except crypto.Error as err:
+        except crypto.Error:
             self.certificate_obj = None
 
     @classmethod
@@ -193,10 +186,10 @@ class Certificate(db.Model):
         return serial_setting.value
 
     def export(self, path):
-        open(os.path.join(path, '{0}.key'.format(self.name)), 'w').write(self.key)
-        open(os.path.join(path, '{0}.pem'.format(self.name)), 'w').write(self.certificate)
+        open(os.path.join(path, '{}.key'.format(self.name)), 'w').write(self.key)
+        open(os.path.join(path, '{}.pem'.format(self.name)), 'w').write(self.certificate)
 
-class CertificatePackage(object):
+class CertificatePackage:
     """
     Represents a downloadable package of certificates
     """

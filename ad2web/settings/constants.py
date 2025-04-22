@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from ..setup.constants import NETWORK_DEVICE, SERIAL_DEVICE
 from ..user import User, UserDetail
 from ..settings import Setting
 from ..certificate import Certificate

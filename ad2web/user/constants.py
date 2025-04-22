@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # User role
 ADMIN = 0
 USER = 1

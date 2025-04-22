@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 SETUP_INDEX = None
 SETUP_TYPE = 0
 SETUP_LOCATION = 1

@@ -1,19 +1,15 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import os
-import numbers
 import cgi
 
-from flask import Blueprint, render_template, abort, g, request, flash, Response, url_for, redirect
+from flask import Blueprint, render_template, request, url_for, redirect
 from flask import current_app as APP
-from flask_login import login_required, current_user
+from flask_login import login_required
 
 from ..extensions import db
 from ..decorators import admin_required
 from .constants import ARM, DISARM, POWER_CHANGED, ALARM, FIRE, BYPASS, BOOT, \
                         CONFIG_RECEIVED, ZONE_FAULT, ZONE_RESTORE, LOW_BATTERY, \
-                        PANIC, EVENT_TYPES, LRR, READY, CHIME, RFX, EXP, AUI
+                        PANIC, EVENT_TYPES, LRR, READY, RFX, EXP, AUI
 from .models import EventLogEntry
 from ..logwatch import LogWatcher
 from ..utils import INSTANCE_FOLDER_PATH
@@ -82,7 +78,7 @@ def get_log_data(lines):
 
     try:
         log_text = LogWatcher.tail(log_file, lines)
-    except IOError as err:
+    except OSError as err:
         return json.dumps([str(err)])
 
     return json.dumps(log_text)
@@ -97,7 +93,7 @@ def get_events_paging_data():
         #get results from datatable via XHR
         results = DataTablesServer(request).output_result()
     except TypeError as ex:
-        APP.logger.warning("Error processing datatables request: {0}".format(ex))
+        APP.logger.warning("Error processing datatables request: {}".format(ex))
 
     return json.dumps(results)
 
@@ -117,8 +113,8 @@ class DataTablesServer:
     def output_result(self):
         output = {}
         output['sEcho'] = cgi.escape(str(int(self.request_values['sEcho'])))
-        output['iTotalRecords'] = int(self.cardinality);
-        output['iTotalDisplayRecords'] = int(self.cardinality);
+        output['iTotalRecords'] = int(self.cardinality)
+        output['iTotalDisplayRecords'] = int(self.cardinality)
 
         aaData_rows = []
 
@@ -155,14 +151,14 @@ class DataTablesServer:
                 self.result_data = EventLogEntry.query.filter(EventLogEntry.message.like('%' + filter + '%')).order_by(EventLogEntry.timestamp.desc()).limit(limit).offset(start)
                 self.cardinality_filtered = self.result_data.count()
                 self.cardinality = EventLogEntry.query.filter(EventLogEntry.message.like('%' + filter + '%')).count()
-            except Exception as err:
+            except Exception:
                 pass
         else:
             try:
                 self.result_data = EventLogEntry.query.order_by(EventLogEntry.timestamp.desc()).limit(limit).offset(start)
                 self.cardinality_filtered = self.result_data.count()
                 self.cardinality = EventLogEntry.query.order_by(EventLogEntry.timestamp.desc()).count()
-            except Exception as err:
+            except Exception:
                 pass
 
     #here we determine the filter value for the search box and apply to the queries
@@ -183,4 +179,4 @@ class DataTablesServer:
             pages.start = int(cgi.escape(self.request_values['iDisplayStart']))
             pages.length = int(cgi.escape(self.request_values['iDisplayLength']))
 
-        return pages;
+        return pages

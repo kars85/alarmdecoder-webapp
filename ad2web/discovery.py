@@ -1,13 +1,10 @@
-from __future__ import absolute_import
 import os
 import socket
 import struct
-import sys
 import threading
 import uuid
 import fcntl
 import time
-from six.moves import range
 
 try:
     import netifaces
@@ -16,8 +13,8 @@ except ImportError:
     has_netifaces = False
 
 from select import select
-from six.moves.http_client import HTTPResponse
-from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
+from http.client import HTTPResponse
+from http.server import BaseHTTPRequestHandler
 from StringIO import StringIO
 
 from .extensions import db
@@ -69,7 +66,7 @@ class DiscoveryServer(threading.Thread):
         self._announcement_timestamp = 0
 
         with self._decoder.app.app_context():
-            self._decoder.app.logger.info("Discovery running: loc={0}:{1}, uuid={2}".format(self._current_ip_address, self._current_port, self._device_uuid))
+            self._decoder.app.logger.info("Discovery running: loc={}:{}, uuid={}".format(self._current_ip_address, self._current_port, self._device_uuid))
 
     def stop(self):
         """
@@ -98,11 +95,11 @@ class DiscoveryServer(threading.Thread):
                         self._update()
                         
                 except Exception as err:
-                    self._decoder.app.logger.error('Error in DiscoveryServer: {0}'.format(err), exc_info=True)
+                    self._decoder.app.logger.error('Error in DiscoveryServer: {}'.format(err), exc_info=True)
 
     def _handle_request(self, request, addr):
         if request.error_code:
-            self._decoder.app.logger.warning('Discovery: Error {0} - {1}'.format(request.error_code, request.error_message))
+            self._decoder.app.logger.warning('Discovery: Error {} - {}'.format(request.error_code, request.error_message))
             return
 
         if self._match_search_request(request):
@@ -128,14 +125,14 @@ class DiscoveryServer(threading.Thread):
         #     self._announcement_timestamp = time.time()
 
     def _create_discovery_response(self, request):
-        loc = 'http://{0}:{1}/static/device_description.xml'.format(self._current_ip_address, self._current_port)
-        usn = 'uuid:{0}'.format(self._device_uuid)
+        loc = 'http://{}:{}/static/device_description.xml'.format(self._current_ip_address, self._current_port)
+        usn = 'uuid:{}'.format(self._device_uuid)
 
         return self.RESPONSE_MESSAGE % dict(ST=request.headers['ST'], LOCATION=loc, USN=usn, CACHE_CONTROL=self._expiration_time)
 
     def _create_notify_message(self):
-        loc = 'http://{0}:{1}'.format(self._current_ip_address, self._current_port)
-        usn = 'uuid:{0}'.format(self._device_uuid)
+        loc = 'http://{}:{}'.format(self._current_ip_address, self._current_port)
+        usn = 'uuid:{}'.format(self._device_uuid)
 
         msg1 = self.NOTIFY_MESSAGE % dict(NT="upnp:rootdevice", LOCATION=loc, USN=usn + "::upnp:rootdevice", NTS="ssdp:alive", CACHE_CONTROL=self._expiration_time)
         msg2 = self.NOTIFY_MESSAGE % dict(NT=usn, LOCATION=loc, USN=usn, NTS="ssdp:alive", CACHE_CONTROL=self._expiration_time)
@@ -145,7 +142,7 @@ class DiscoveryServer(threading.Thread):
 
     def _send_message(self, message, addr):
         with self._decoder.app.app_context():
-            self._decoder.app.logger.debug('sending message to {0}: {1}'.format(addr, message))
+            self._decoder.app.logger.debug('sending message to {}: {}'.format(addr, message))
 
         for i in range(2): # NOTE: Sending multiple times due to UDP's unreliability.
             self._socket.sendto(message, addr)

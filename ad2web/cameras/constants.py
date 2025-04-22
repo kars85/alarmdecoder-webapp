@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 USERNAME = 0
 PASSWORD = 1
 JPG_URL = 2

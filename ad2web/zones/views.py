@@ -1,19 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from datetime import datetime
-
-from flask import Blueprint, render_template, current_app, request, flash, redirect, url_for, jsonify
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+from flask_login import login_required
 
 from ..extensions import db
-from ..user import User
-from ..utils import allowed_file, make_dir
 from ..decorators import admin_required
 from ..settings import Setting
 from .forms import ZoneForm
 from .models import Zone
-import pprint
 
 zones = Blueprint('zones', __name__, url_prefix='/settings/zones')
 
@@ -74,7 +66,7 @@ def edit(id):
 def remove(id):
     zone = Zone.query.filter_by(zone_id=id).first_or_404()
     db.session.delete(zone)
-    db.session.commit();
+    db.session.commit()
     
     flash('Zone deleted.', 'success')
 

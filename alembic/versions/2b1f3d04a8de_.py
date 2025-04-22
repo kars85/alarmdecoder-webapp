@@ -7,7 +7,6 @@ Create Date: 2014-05-14 10:33:57.370234
 """
 
 # revision identifiers, used by Alembic.
-from __future__ import absolute_import
 revision = '2b1f3d04a8de'
 down_revision = '51122360a73c'
 
@@ -34,7 +33,7 @@ def downgrade():
     sa.Column('description', sa.VARCHAR(length=255), nullable=False),
     sa.Column('type', sa.INTEGER(), nullable=False),
     sa.Column('user_id', sa.INTEGER(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], [u'users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('custom_notification_settings',
@@ -46,7 +45,7 @@ def downgrade():
     sa.Column('message_channel', sa.INTEGER(), nullable=True),
     sa.Column('message_data', sa.INTEGER(), nullable=True),
     sa.Column('custom_alert_message', sa.VARCHAR(length=255), nullable=False),
-    sa.ForeignKeyConstraint(['custom_notification_id'], [u'custom_notifications.id'], ),
+    sa.ForeignKeyConstraint(['custom_notification_id'], ['custom_notifications.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.drop_table('notification_messages')

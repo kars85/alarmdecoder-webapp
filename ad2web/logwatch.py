@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Real-time log files watcher supporting log rotation.
 Works with Python >= 2.6 and >= 3.2, on both POSIX and Windows.
@@ -8,16 +6,13 @@ Author: Giampaolo Rodola' <g.rodola [AT] gmail [DOT] com>
 License: MIT
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import time
 import errno
 import stat
-import sys
 
 
-class LogWatcher(object):
+class LogWatcher:
     """Looks for changes in all files of a directory.
     This is useful for watching log file changes in real-time.
     It also supports files rotation.
@@ -67,7 +62,7 @@ class LogWatcher(object):
             if tail_lines:
                 try:
                     lines = self.tail(file.name, tail_lines)
-                except IOError as err:
+                except OSError as err:
                     if err.errno != errno.ENOENT:
                         raise
                 else:
@@ -169,7 +164,7 @@ class LogWatcher(object):
             absname = os.path.realpath(os.path.join(self.folder, name))
             try:
                 st = os.stat(absname)
-            except EnvironmentError as err:
+            except OSError as err:
                 if err.errno != errno.ENOENT:
                     raise
             else:
@@ -182,7 +177,7 @@ class LogWatcher(object):
         for fid, file in list(self._files_map.items()):
             try:
                 st = os.stat(file.name)
-            except EnvironmentError as err:
+            except OSError as err:
                 if err.errno == errno.ENOENT:
                     self.unwatch(file, fid)
                 else:
@@ -212,7 +207,7 @@ class LogWatcher(object):
         try:
             file = self.open(fname)
             fid = self.get_file_id(os.stat(fname))
-        except EnvironmentError as err:
+        except OSError as err:
             if err.errno != errno.ENOENT:
                 raise
         else:
@@ -233,7 +228,7 @@ class LogWatcher(object):
     @staticmethod
     def get_file_id(st):
         if os.name == 'posix':
-            return "%xg%x" % (st.st_dev, st.st_ino)
+            return "{:x}g{:x}".format(st.st_dev, st.st_ino)
         else:
             return "%f" % st.st_ctime
 

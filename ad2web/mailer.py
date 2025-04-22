@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import smtplib
 from os.path import basename
 from email.mime.application import MIMEApplication
@@ -6,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
-class Mailer(object):
+class Mailer:
 
     port = 25
     server = "127.0.0.1"

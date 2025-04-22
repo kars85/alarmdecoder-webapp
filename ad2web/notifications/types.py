@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from flask import current_app
 import time
 import datetime
@@ -8,8 +5,7 @@ import smtplib
 import threading
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from six.moves.urllib.parse import urlparse
-import sleekxmpp
+from urllib.parse import urlparse
 import json
 import re
 import ssl
@@ -18,11 +14,9 @@ import base64
 import uuid
 import traceback
 import functools
-from alarmdecoder import AlarmDecoder
-from alarmdecoder.panels import ADEMCO, DSC, PANEL_TYPES
+from alarmdecoder.panels import ADEMCO, DSC
 from alarmdecoder.zonetracking import Zone as ADZone
 import six
-from six.moves import range
 
 try:
     from concurrent.futures import ThreadPoolExecutor
@@ -57,7 +51,6 @@ try:
 except ImportError:
     have_twilio = False
 
-from xml.dom.minidom import parseString
 from xml.etree.ElementTree import Element
 from xml.etree.ElementTree import SubElement
 from xml.etree.ElementTree import Comment
@@ -68,21 +61,20 @@ import ast
 try:
     from http.client import HTTPSConnection
 except ImportError:
-    from six.moves.http_client import HTTPSConnection
+    from http.client import HTTPSConnection
 
 
 #normal http connection support (future POST to custom url)
 try:
     from http.client import HTTPConnection
 except ImportError:
-    from six.moves.http_client import HTTPConnection
+    from http.client import HTTPConnection
 
 try:
     from urllib.parse import urlencode, quote
 except ImportError:
-    from six.moves.urllib.parse import urlencode, quote
+    from urllib.parse import urlencode, quote
 
-import logging
 try:
     import gntp.notifier
     have_gntp = True
@@ -91,13 +83,13 @@ except ImportError:
 
 from .constants import (EMAIL, DEFAULT_EVENT_MESSAGES, PUSHOVER, TWILIO, PROWL, PROWL_URL, PROWL_PATH, PROWL_EVENT, PROWL_METHOD,
                         PROWL_CONTENT_TYPE, PROWL_HEADER_CONTENT_TYPE, PROWL_USER_AGENT, GROWL_APP_NAME, GROWL_DEFAULT_NOTIFICATIONS,
-                        GROWL_PRIORITIES, GROWL, CUSTOM, URLENCODE, JSON, XML, CUSTOM_CONTENT_TYPES, CUSTOM_USER_AGENT, CUSTOM_METHOD,
+                        GROWL, CUSTOM, URLENCODE, JSON, XML, CUSTOM_CONTENT_TYPES, CUSTOM_USER_AGENT, CUSTOM_METHOD,
                         ZONE_FAULT, ZONE_RESTORE, BYPASS, CUSTOM_METHOD_GET, CUSTOM_METHOD_POST, CUSTOM_METHOD_GET_TYPE,
                         CUSTOM_TIMESTAMP, CUSTOM_MESSAGE, CUSTOM_REPLACER_SEARCH, TWIML, ARM, DISARM, ALARM, PANIC, FIRE, MATRIX,
                         UPNPPUSH, LRR, READY, CHIME, TIME_MULTIPLIER, XML_EVENT_TEMPLATE, XML_EVENT_PROPERTY, EVENT_TYPES,
                         RAW_MESSAGE, EVENTID_MESSAGE, EVENTDESC_MESSAGE, POWER_CHANGED, BOOT, LOW_BATTERY, RFX, EXP, AUI)
 
-from .models import Notification, NotificationSetting, NotificationMessage
+from .models import Notification, NotificationMessage
 from ..extensions import db
 from ..log.models import EventLogEntry
 from ..zones import Zone
@@ -117,7 +109,7 @@ def raise_with_stack(func):
         except Exception as e:
             tb = traceback.format_exc(e).splitlines()
             # Grab error and line number
-            raise Exception("%s %s" % (repr(e), tb[3].split(",")[1].strip()))
+            raise Exception("{} {}".format(repr(e), tb[3].split(",")[1].strip()))
 
     return wrapped
 
@@ -135,7 +127,7 @@ def raise_with_stack(func):
 '''
 def threaded(func):
     def wrapper(*args, **kwargs):
-        fcname = "%s.%s()" % (args[0].__class__.__name__, func.__name__)
+        fcname = "{}.{}()".format(args[0].__class__.__name__, func.__name__)
 
         # If we have it use it.
         if have_threadpoolexecutor:
@@ -149,7 +141,7 @@ def threaded(func):
             with notifier._lock:
                 notifier._futures.append(future)
 
-            myapp.logger.info('Background notification function {0} starting.'.format(future.fcname))
+            myapp.logger.info('Background notification function {} starting.'.format(future.fcname))
 
         else:
             # No threading so block and run it synchronously.
@@ -159,7 +151,7 @@ def threaded(func):
     return wrapper
 
 
-class NotificationSystem(object):
+class NotificationSystem:
     def __init__(self):
         self._notifiers = {}
         self._messages = DEFAULT_EVENT_MESSAGES
@@ -182,7 +174,7 @@ class NotificationSystem(object):
             # enabled by default with 5 threads.
             workers = Setting.get_by_name('max_notification_workers',default=5).value
             if workers:
-                current_app.logger.info('ThreadPoolExecutor enabled for notifications with max_workders {0}.'.format(workers))
+                current_app.logger.info('ThreadPoolExecutor enabled for notifications with max_workders {}.'.format(workers))
                 self._tpool = ThreadPoolExecutor(max_workers=workers)
             else:
                 current_app.logger.info('ThreadPoolExecutor for notifications disabled.')
@@ -192,7 +184,7 @@ class NotificationSystem(object):
     def send(self, type, **kwargs):
         errors = []
 
-        for id, n in six.iteritems(self._notifiers):
+        for id, n in self._notifiers.items():
             if n and n.subscribes_to(type, **kwargs):
                 try:
                     message, rawmessage = self._build_message(type, **kwargs)
@@ -215,7 +207,7 @@ class NotificationSystem(object):
                             n.send(type, message, rawmessage)
 
                 except Exception as err:
-                    errors.append('Exception in notification {0}.send(): {1}'.format(n.__class__.__name__,str(err)))
+                    errors.append('Exception in notification {}.send(): {}'.format(n.__class__.__name__,str(err)))
 
         return errors
 
@@ -273,10 +265,10 @@ class NotificationSystem(object):
             tlength = TIME_MULTIPLIER.get(tmultiplier,1) * int(tval)
             self._subscribers.update({sub_uuid: {'host':host, 'callback':callback, 'timeout':time.time()+tlength}})
 
-            current_app.logger.info('add_subscriber: {0}'.format(sub_uuid))
+            current_app.logger.info('add_subscriber: {}'.format(sub_uuid))
 
         except Exception as err:
-            current_app.logger.error('Error adding subscriber for host:{0} callback:{1} timeout:{2} err: {3}'.format(host, callback, timeout, str(err)))
+            current_app.logger.error('Error adding subscriber for host:{} callback:{} timeout:{} err: {}'.format(host, callback, timeout, str(err)))
 
         return sub_uuid
 
@@ -288,9 +280,9 @@ class NotificationSystem(object):
         """
         found = self._subscribers.pop(subuudi, None)
         if found:
-            current_app.logger.info('remove_subscriber: found {0}'.format(subuuid))
+            current_app.logger.info('remove_subscriber: found {}'.format(subuuid))
         else:
-            current_app.logger.info('remove_subscriber: not found {0}'.format(subuuid))
+            current_app.logger.info('remove_subscriber: not found {}'.format(subuuid))
 
     def get_subscribers(self):
         return self._subscribers
@@ -337,7 +329,7 @@ class NotificationSystem(object):
                 vs = 'Event' if message.get('event_status', 1) == 1 else 'Restore'
                 vedt = message.get('event_data_type', -1)
                 vd = message.get('event_data', -1)
-                kwargs['status'] = "Partition {0} {1} {2} {3}{4}".format(vp, ved, vs, vedt, vd)
+                kwargs['status'] = "Partition {} {} {} {}{}".format(vp, ved, vs, vedt, vd)
             else:
                 kwargs['status'] = message
 
@@ -379,7 +371,7 @@ class NotificationSystem(object):
                     self._remove_suppressed_zone(notifier['zone'])
 
             except Exception as err:
-                errors.append('Error sending notification for {0}: {1}'.format(notifier['notification'].description, str(err)))
+                errors.append('Error sending notification for {}: {}'.format(notifier['notification'].description, str(err)))
 
         for notifier in self._wait_list:
             try:
@@ -388,7 +380,7 @@ class NotificationSystem(object):
                     self._wait_list.remove(notifier)
 
             except Exception as err:
-                errors.append('Error sending notification for {0}: {1}'.format(notifier['notification'].description, str(err)))
+                errors.append('Error sending notification for {}: {}'.format(notifier['notification'].description, str(err)))
 
         return errors
 
@@ -438,7 +430,7 @@ class NotificationThread(threading.Thread):
                 ncount = len(notifier._futures)
                 if ncount > 0:
                     with self._decoder.app.app_context():
-                        current_app.logger.info('Background notification functions running {0}.'.format(ncount))
+                        current_app.logger.info('Background notification functions running {}.'.format(ncount))
 
                     remove = []
                     data = ""
@@ -454,9 +446,9 @@ class NotificationThread(threading.Thread):
                                 extra_msg = 'no exceptions'
 
                             with self._decoder.app.app_context():
-                                current_app.logger.info('Background notification function {0} finished with {1}.'.format(f.fcname, extra_msg))
+                                current_app.logger.info('Background notification function {} finished with {}.'.format(f.fcname, extra_msg))
 
-                            remove.append(f);
+                            remove.append(f)
 
                     for f in remove:
                         notifier._futures.remove(f)
@@ -469,10 +461,10 @@ class NotificationThread(threading.Thread):
             time.sleep(5)
 
 
-class BaseNotification(object):
+class BaseNotification:
     def __init__(self, obj):
         if 'subscriptions' in list(obj.settings.keys()):
-            self._subscriptions = {int(k): v for k, v in six.iteritems(json.loads(obj.settings['subscriptions'].value))}
+            self._subscriptions = {int(k): v for k, v in json.loads(obj.settings['subscriptions'].value).items()}
         else:
             self._subscriptions = {}
 
@@ -506,7 +498,7 @@ class BaseNotification(object):
         return False
 
 
-class LogNotification(object):
+class LogNotification:
     def __init__(self):
         self.id = -1
         self.description = 'Logger'
@@ -519,9 +511,9 @@ class LogNotification(object):
     def send(self, type, text, raw):
         with current_app.app_context():
             if type == ZONE_RESTORE or type == ZONE_FAULT or type == BYPASS:
-                current_app.logger.debug('Event: {0}'.format(text))
+                current_app.logger.debug('Event: {}'.format(text))
             else:
-                current_app.logger.info('Event: {0}'.format(text))
+                current_app.logger.info('Event: {}'.format(text))
 
         db.session.add(EventLogEntry(type=type, message=text))
         db.session.commit()
@@ -581,7 +573,7 @@ class UPNPPushNotification(BaseNotification):
             relay_status.append(child)
 
         faulted_zones = Element("panel_zones_faulted")
-        for zid, z in six.iteritems(current_app.decoder.device._zonetracker.zones):
+        for zid, z in current_app.decoder.device._zonetracker.zones.items():
             if z.status != ADZone.CLEAR:
                 child = Element("z") # keep it small
                 child.text = str(z.zone)
@@ -642,7 +634,7 @@ class UPNPPushNotification(BaseNotification):
             app = current_app
 
         # Remove <> that surround the real unicode url if they exist...
-        notify_url = notify_url.translate({ord(k): u"" for k in "<>"})
+        notify_url = notify_url.translate({ord(k): "" for k in "<>"})
         parsed_url = urlparse(notify_url)
 
         headers = {
@@ -659,10 +651,10 @@ class UPNPPushNotification(BaseNotification):
         http_handler.request('NOTIFY', parsed_url.path, notify_message, headers)
         http_response = http_handler.getresponse()
 
-        app.logger.info('{0}_send_notify_event: status:{1} reason:{2} headers:{3}'.format(self.description, http_response.status, http_response.reason, headers))
+        app.logger.info('{}_send_notify_event: status:{} reason:{} headers:{}'.format(self.description, http_response.status, http_response.reason, headers))
 
         if http_response.status != 200:
-            error_msg = '{0} Notification failed: ({1}: {2})'.format(self.description, http_response.status, http_response.read())
+            error_msg = '{} Notification failed: ({}: {})'.format(self.description, http_response.status, http_response.read())
 
             app.logger.warning(error_msg)
             raise Exception(error_msg)
@@ -704,7 +696,7 @@ class MatrixNotification(BaseNotification):
 
                 notify_data = {
                     'msgtype': 'm.text',
-                    'body': "From %s: %s" % (self.notification_description, text),
+                    'body': "From {}: {}".format(self.notification_description, text),
                     'notifier': self.notification_description,
                     'eventid': type,
                     'eventdesc': (EVENT_TYPES[type] if type is not None else "Testing"),
@@ -718,7 +710,7 @@ class MatrixNotification(BaseNotification):
                         except ValueError:
                             pass
 
-                        notify_data.update(dict((str(i['custom_key']), i['custom_value']) for i in self.custom_values))
+                        notify_data.update({str(i['custom_key']): i['custom_value'] for i in self.custom_values})
 
 
                 #replace placeholder values with actual values
@@ -799,7 +791,7 @@ class EmailNotification(BaseNotification):
                 msg['Subject'] = self.subject
 
             msg['From'] = self.source
-            recipients = re.split('\s*;\s*|\s*,\s*', self.destination)
+            recipients = re.split(r'\s*;\s*|\s*,\s*', self.destination)
             msg['To'] = ', '.join(recipients)
             msg['Date'] = formatdate(localtime=True)
 
@@ -1189,7 +1181,7 @@ class CustomNotification(BaseNotification):
                     except ValueError:
                         pass
 
-                    notify_data = dict((str(i['custom_key']), i['custom_value']) for i in self.custom_values)
+                    notify_data = {str(i['custom_key']): i['custom_value'] for i in self.custom_values}
 
 
             #replace placeholder values with actual values

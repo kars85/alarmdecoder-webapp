@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from collections import OrderedDict
 
 ARM = 0
@@ -99,15 +96,15 @@ NOTIFICATION_TYPES = {
 }
 
 NOTIFICATIONS = {
-    EMAIL: ('email', u'Email'),
-    PUSHOVER: ('pushover', u'Pushover.net'),
-    TWILIO: ('twilio', u'Twilio'),
-    PROWL: ('prowl', u'Prowl'),
-    GROWL: ('growl', u'Growl'),
-    CUSTOM: ('custom', u'Custom'),
-    TWIML: ('twiml', u'TwiML'),
-    UPNPPUSH: ('upnppush', u'UPNP Push'),
-    MATRIX: ('matrix', u'Matrix.org')
+    EMAIL: ('email', 'Email'),
+    PUSHOVER: ('pushover', 'Pushover.net'),
+    TWILIO: ('twilio', 'Twilio'),
+    PROWL: ('prowl', 'Prowl'),
+    GROWL: ('growl', 'Growl'),
+    CUSTOM: ('custom', 'Custom'),
+    TWIML: ('twiml', 'TwiML'),
+    UPNPPUSH: ('upnppush', 'UPNP Push'),
+    MATRIX: ('matrix', 'Matrix.org')
 }
 
 DEFAULT_SUBSCRIPTIONS = [ALARM, PANIC, FIRE, ARM, DISARM, LRR]
@@ -143,11 +140,11 @@ HIGH = 3
 EMERGENCY = 4
 
 PUSHOVER_PRIORITIES = {
-    LOWEST: (-2, u'LOWEST'),
-    LOW: (-1, u'LOW'),
-    NORMAL: (0, u'NORMAL'),
-    HIGH: (1, u'HIGH'),
-    EMERGENCY: (2, u'EMERGENCY')
+    LOWEST: (-2, 'LOWEST'),
+    LOW: (-1, 'LOW'),
+    NORMAL: (0, 'NORMAL'),
+    HIGH: (1, 'HIGH'),
+    EMERGENCY: (2, 'EMERGENCY')
 }
 
 PROWL_URL = "api.prowlapp.com"
@@ -160,11 +157,11 @@ PROWL_CONTENT_TYPE = "text/html"
 PROWL_HEADER_CONTENT_TYPE = "application/x-www-form-urlencoded"
 
 PROWL_PRIORITIES = {
-    LOWEST: (-2, u'VERY LOW'),
-    LOW: (-1, u'MODERATE'),
-    NORMAL: (0, u'NORMAL'),
-    HIGH: (1, u'HIGH'),
-    EMERGENCY: (2, u'EMERGENCY')
+    LOWEST: (-2, 'VERY LOW'),
+    LOW: (-1, 'MODERATE'),
+    NORMAL: (0, 'NORMAL'),
+    HIGH: (1, 'HIGH'),
+    EMERGENCY: (2, 'EMERGENCY')
 }
 
 GROWL_APP_NAME = 'AlarmDecoder'
@@ -172,11 +169,11 @@ GROWL_TITLE = 'AlarmDecoder: Alarm Event'
 GROWL_DEFAULT_NOTIFICATIONS = ["AlarmDecoder", "AlarmDecoder: Alarm Event"]
 
 GROWL_PRIORITIES = {
-    LOWEST: (-2, u'VERY LOW'),
-    LOW: (-1, u'MODERATE'),
-    NORMAL: (0, u'NORMAL'),
-    HIGH: (1, u'HIGH'),
-    EMERGENCY: (2, u'EMERGENCY')
+    LOWEST: (-2, 'VERY LOW'),
+    LOW: (-1, 'MODERATE'),
+    NORMAL: (0, 'NORMAL'),
+    HIGH: (1, 'HIGH'),
+    EMERGENCY: (2, 'EMERGENCY')
 }
 
 URLENCODE = 0

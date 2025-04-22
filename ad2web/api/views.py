@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import json
 import sh
 import os
@@ -8,13 +5,13 @@ import socket
 
 from functools import wraps
 from datetime import timedelta
-from six.moves.http_client import OK, CREATED, ACCEPTED, NO_CONTENT, UNAUTHORIZED, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, SERVICE_UNAVAILABLE
+from http.client import OK, CREATED, ACCEPTED, NO_CONTENT, UNAUTHORIZED, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, SERVICE_UNAVAILABLE
 
-from flask import Blueprint, current_app, request, jsonify, abort, Response, render_template, redirect, url_for
-from flask_login import login_user, current_user, logout_user, login_required
+from flask import Blueprint, current_app, request, jsonify, Response, render_template, redirect, url_for
+from flask_login import login_required
 
 from alarmdecoder import AlarmDecoder
-from alarmdecoder.panels import ADEMCO, DSC, PANEL_TYPES
+from alarmdecoder.panels import ADEMCO, DSC
 from alarmdecoder.zonetracking import Zone as ADZone
 
 from ..extensions import db
@@ -25,13 +22,11 @@ from ..zones import Zone
 from ..notifications import Notification, NotificationSetting
 from ..notifications.constants import EVENT_TYPES
 from ..cameras import Camera
-from ..settings import Setting
 
 from .constants import ERROR_NOT_AUTHORIZED, ERROR_DEVICE_NOT_INITIALIZED, ERROR_MISSING_BODY, ERROR_MISSING_FIELD, ERROR_INVALID_VALUE, \
                         ERROR_RECORD_ALREADY_EXISTS, ERROR_RECORD_DOES_NOT_EXIST
 
 from .models import APIKey
-from .forms import APIKeyForm
 from .utils import generate_api_key
 import six
 
@@ -174,7 +169,7 @@ def alarmdecoder():
         })
 
     faulted_zones = []
-    for zid, z in six.iteritems(current_app.decoder.device._zonetracker.zones):
+    for zid, z in current_app.decoder.device._zonetracker.zones.items():
         if z.status != ADZone.CLEAR:
             faulted_zones.append(z.zone)
 
@@ -242,7 +237,7 @@ def alarmdecoder_events():
         callback = request.headers.get("CALLBACK")
         timeout = request.headers.get("TIMEOUT")
 
-        current_app.logger.info('SUBSCRIBE host:{0} callback: {1} timeout: {2}'.format(host, callback, timeout))
+        current_app.logger.info('SUBSCRIBE host:{} callback: {} timeout: {}'.format(host, callback, timeout))
 
         # Call notifier method to add to subscriber map/list
         subid = current_app.decoder._notifier_system.add_subscriber(host, callback, timeout)
@@ -264,7 +259,7 @@ def alarmdecoder_events():
         host = request.headers.get("HOST")
         sid = request.headers.get("SID")
 
-        current_app.logger.info('UNSUBSCRIBE host: {0} sid: {1}'.format(host, sid))
+        current_app.logger.info('UNSUBSCRIBE host: {} sid: {}'.format(host, sid))
 
         # Call notifier method to remove from subscriber map/list
         current_app.decoder._notifier_system.remove_subscriber(host, sid)
@@ -481,7 +476,7 @@ def zones_fault(id):
         return jsonify(build_error(ERROR_RECORD_DOES_NOT_EXIST, 'Zone does not exist.')), NOT_FOUND
 
     # TODO: Make a note in docs.. only supported for emulated zones.
-    current_app.decoder.device.send("L{0}1\r".format(id))
+    current_app.decoder.device.send("L{}1\r".format(id))
 
     return "", NO_CONTENT
 
@@ -497,7 +492,7 @@ def zones_restore(id):
         return jsonify(build_error(ERROR_RECORD_DOES_NOT_EXIST, 'Zone does not exist.')), NOT_FOUND
 
     # TODO: Make a note in docs.. only supported for emulated zones.
-    current_app.decoder.device.send("L{0}0\r".format(id))
+    current_app.decoder.device.send("L{}0\r".format(id))
 
     return "", NO_CONTENT
 
@@ -582,10 +577,10 @@ def notifications():
         settings = req.get('settings', None)
         for name, value in settings.items():
             if name == 'subscriptions':
-                event_types = {v: k for k, v in six.iteritems(EVENT_TYPES)}
+                event_types = {v: k for k, v in EVENT_TYPES.items()}
 
                 subscriptions_out = {}
-                for k, v in six.iteritems(value):
+                for k, v in value.items():
                     subscriptions_out[str(event_types[k])] = v
 
                 value = json.dumps(subscriptions_out)
@@ -640,10 +635,10 @@ def notifications_by_id(id):
                     setting = NotificationSetting(name=name)
 
                 if name == 'subscriptions':
-                    event_types = {v: k for k, v in six.iteritems(EVENT_TYPES)}
+                    event_types = {v: k for k, v in EVENT_TYPES.items()}
 
                     subscriptions_out = {}
-                    for k, v in six.iteritems(value):
+                    for k, v in value.items():
                         subscriptions_out[str(event_types[k])] = v
 
                     value = json.dumps(subscriptions_out)
@@ -846,8 +841,8 @@ def users():
             return jsonify(build_error(ERROR_RECORD_ALREADY_EXISTS, 'User already exists with the specified username.')), CONFLICT
 
         # Convert role/status fields into what they should be.
-        role_types = {v: k for k, v in six.iteritems(USER_ROLE)}
-        status_types = {v: k for k, v in six.iteritems(USER_STATUS)}
+        role_types = {v: k for k, v in USER_ROLE.items()}
+        status_types = {v: k for k, v in USER_STATUS.items()}
 
         role = role_types[role]
         status = status_types[status]
@@ -888,8 +883,8 @@ def users_by_id(id):
         status = req.get('status', None)
 
         # Convert role/status fields into what they should be.
-        role_types = {v: k for k, v in six.iteritems(USER_ROLE)}
-        status_types = {v: k for k, v in six.iteritems(USER_STATUS)}
+        role_types = {v: k for k, v in USER_ROLE.items()}
+        status_types = {v: k for k, v in USER_STATUS.items()}
 
         if name is not None:
             user.name = name
@@ -929,7 +924,7 @@ def users_by_id(id):
 @api_authorized
 def system():
     uptime = ''
-    with open('/proc/uptime', 'r') as f:
+    with open('/proc/uptime') as f:
         seconds = float(f.readline().split()[0])
         uptime = timedelta(seconds=int(seconds))
 

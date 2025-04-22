@@ -1,30 +1,18 @@
-from __future__ import absolute_import
 import os
-import platform
-import hashlib
 import io
 import tarfile
 import json
-import re
-import socket
-import random
-import compiler
-import sys
-import types
-import importlib
 import time
 
 from sqlalchemy.orm import class_mapper
-from sqlalchemy.exc import SQLAlchemyError
-from .utils import make_dir, tar_add_directory, tar_add_textfile
+from .utils import tar_add_directory, tar_add_textfile
 from .settings import Setting
 from .settings.constants import EXPORT_MAP
-from datetime import datetime, timedelta
+from datetime import datetime
 from .utils import INSTANCE_FOLDER_PATH
 from flask import Response
-import six
 
-class Exporter(object):
+class Exporter:
     EXPORT_PATH = os.path.join(INSTANCE_FOLDER_PATH, 'exports')
     DAY_SECONDS = 86400
     WRITE_MODE = 'w:gz'
@@ -41,13 +29,13 @@ class Exporter(object):
 
     def exportSettings(self):
         self.fileobj = io.BytesIO()
-        self.filename = '{0}-{1}.tar.gz'.format(self.prefix, datetime.now().strftime('%Y%m%d%H%M%S'))
+        self.filename = '{}-{}.tar.gz'.format(self.prefix, datetime.now().strftime('%Y%m%d%H%M%S'))
         self.full_path = os.path.join(self.export_path, self.filename)
 
         with tarfile.open(name=bytes(self.filename), mode=self.WRITE_MODE, fileobj=self.fileobj) as tar:
             tar_add_directory(tar, self.prefix)
 
-            for export_file, model in six.iteritems(EXPORT_MAP):
+            for export_file, model in EXPORT_MAP.items():
                 tar_add_textfile(tar, export_file, bytes(self._export_model(model)), self.prefix)
 
     def writeFile(self):

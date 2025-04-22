@@ -1,29 +1,22 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 import os
 import glob
 import platform
 
-from flask import Blueprint, render_template, abort, g, request, flash, Response, redirect, url_for
+from flask import Blueprint, render_template, flash, redirect, url_for
 from flask import current_app
-from flask_login import login_required, current_user
 
 from ..extensions import db
-from ..decorators import admin_required, admin_or_first_run_required
+from ..decorators import admin_or_first_run_required
 from ..settings.models import Setting
 from ..certificate.models import Certificate
-from ..certificate.constants import CA, SERVER, CLIENT, INTERNAL, ACTIVE as CERT_ACTIVE
+from ..certificate.constants import CA, SERVER, INTERNAL, ACTIVE as CERT_ACTIVE
 from .forms import (DeviceTypeForm, NetworkDeviceForm, LocalDeviceForm,
                    SSLForm, SSLHostForm, DeviceForm, TestDeviceForm, CreateAccountForm, LocalDeviceFormUSB)
-from .constants import (SETUP_TYPE, SETUP_LOCATION, SETUP_NETWORK,
-                    SETUP_LOCAL, SETUP_DEVICE, SETUP_TEST, SETUP_COMPLETE, BAUDRATES,
-                    DEFAULT_BAUDRATES, DEFAULT_PATHS, SETUP_ENDPOINT_STAGE)
+from .constants import (SETUP_TEST, DEFAULT_BAUDRATES, DEFAULT_PATHS, SETUP_ENDPOINT_STAGE)
 from ..ser2sock import ser2sock
 from ..user.models import User
 from ..user.constants import ADMIN as USER_ADMIN, ACTIVE as USER_ACTIVE
-from alarmdecoder.panels import ADEMCO, DSC
-from six.moves import range
+from alarmdecoder.panels import ADEMCO
 
 setup = Blueprint('setup', __name__, url_prefix='/setup')
 
@@ -66,7 +59,7 @@ def type():
         device_location.value = form.device_location.data
         db.session.add(device_location)
 
-        next_stage = 'setup.{0}'.format(device_location.value)
+        next_stage = 'setup.{}'.format(device_location.value)
         set_stage(SETUP_ENDPOINT_STAGE[next_stage])
 
         db.session.commit()
@@ -325,16 +318,16 @@ def sslserver():
             ser2sock.update_config(config_path.value, **config_settings)
 
         except RuntimeError as err:
-            flash("{0}".format(err), 'error')
+            flash("{}".format(err), 'error')
 
         except ser2sock.HupFailed as err:
-            flash("We had an issue restarting ser2sock: {0}".format(err), 'error')
+            flash("We had an issue restarting ser2sock: {}".format(err), 'error')
 
-        except ser2sock.NotFound as err:
+        except ser2sock.NotFound:
             flash("We weren't able to find ser2sock on your system.", 'error')
 
         except Exception as err:
-            flash("Unexpected Error: {0}".format(err), 'error')
+            flash("Unexpected Error: {}".format(err), 'error')
 
         else:
             return redirect(url_for(next_stage))
@@ -427,8 +420,8 @@ def device():
         if current_app.decoder.device is not None:
             form.panel_mode.data = current_app.decoder.device.mode
             form.keypad_address.data = current_app.decoder.device.address
-            form.address_mask.data = '{0:0>8x}'.format(current_app.decoder.device.address_mask)
-            form.internal_address_mask.data = '{0:0>8x}'.format(current_app.decoder.internal_address_mask)
+            form.address_mask.data = '{:0>8x}'.format(current_app.decoder.device.address_mask)
+            form.internal_address_mask.data = '{:0>8x}'.format(current_app.decoder.internal_address_mask)
             form.lrr_enabled.data = current_app.decoder.device.emulate_lrr
             form.deduplicate.data = current_app.decoder.device.deduplicate
             form.zone_expanders.data = [str(idx + 1) if value == True else None for idx, value in enumerate(current_app.decoder.device.emulate_zone)]

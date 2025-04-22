@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-import os
-
-from flask import Blueprint, render_template, abort, g, request, flash, Response, redirect, url_for
-from flask import current_app as APP
+from flask import Blueprint, render_template, abort, request, flash, Response, redirect, url_for
 from flask_login import login_required, current_user
 
 from ..extensions import db
 from ..decorators import admin_required
-from .constants import ACTIVE, CLIENT, CA, PACKAGE_TYPE_LOOKUP, CERTIFICATE_TYPES, CERTIFICATE_STATUS, SERVER, INTERNAL, REVOKED
+from .constants import ACTIVE, CLIENT, CA, PACKAGE_TYPE_LOOKUP, CERTIFICATE_TYPES, CERTIFICATE_STATUS, SERVER, INTERNAL
 from .models import Certificate, CertificatePackage
 from .forms import GenerateCertificateForm
 from ..settings.models import Setting
@@ -89,7 +84,7 @@ def view(certificate_id):
 @certificate.route('/<int:certificate_id>/download/<download_type>')
 @login_required
 def download(certificate_id, download_type):
-    if not download_type in list(PACKAGE_TYPE_LOOKUP.keys()):
+    if download_type not in list(PACKAGE_TYPE_LOOKUP.keys()):
         abort(404)
 
     use_ssl = Setting.get_by_name('use_ssl', default=False).value

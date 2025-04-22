@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from flask import current_app
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
 import os
 try:
     import cv2
@@ -14,7 +13,7 @@ except ImportError:
 from .models import Camera
 from .constants import USERNAME, PASSWORD, JPG_URL, CAMDIR, HEAD, FOOT, RECT_XML_FILE, READ_BYTE_AMOUNT
 
-class CameraSystem(object):
+class CameraSystem:
     def __init__(self):
         self._cameras = {}
         self._camera_ids = []

@@ -1,15 +1,13 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import os
-import sys
 import logging
-import shutil
 import json
-import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
+import six.moves.urllib.request
+import six.moves.urllib.parse
+import six.moves.urllib.error
 
 import sh
 import sqlalchemy.exc
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine
 from alembic import command
 from alembic.migration import MigrationContext
 from alembic.config import Config
@@ -40,7 +38,7 @@ def _log(*args, **kwargs):
         _print(*args, **kwargs)
 
 
-class Updater(object):
+class Updater:
     """
     The primary update system
     """
@@ -62,7 +60,7 @@ class Updater(object):
         """
         status = {}
 
-        for name, component in six.iteritems(self._components):
+        for name, component in self._components.items():
             component.refresh()
             status[name] = (component.needs_update, component.branch, component.local_revision, component.remote_revision, component.status, component.project_url)
 
@@ -76,7 +74,7 @@ class Updater(object):
 
         ret = False
 
-        if version is not None and version is not '':
+        if version is not None and version != '':
             data = None
             version = version[1:]
             try:
@@ -90,7 +88,7 @@ class Updater(object):
                             ret = False
                             break
 
-            except IOError:
+            except OSError:
                 ret = False
 
         return ret
@@ -113,7 +111,7 @@ class Updater(object):
 
             ret[component_name] = component.update()
         else:
-            for name, component in six.iteritems(self._components):
+            for name, component in self._components.items():
                 if component.needs_update():
                     ret[component_name] = component.update()
 
@@ -122,7 +120,7 @@ class Updater(object):
         return ret
 
 
-class WebappUpdater(object):
+class WebappUpdater:
     """
     Update system for the webapp.  Encapsulates source and database for this product.
     """
@@ -227,11 +225,11 @@ class WebappUpdater(object):
                 self._db_updater.refresh()
                 db_succeeded = self._db_updater.update()
 
-        except sh.ErrorReturnCode as err:
+        except sh.ErrorReturnCode:
             git_succeeded = False
 
         if not git_succeeded or not db_succeeded:
-            _log('WebappUpdater: failed - [{0},{1}]'.format(git_succeeded, db_succeeded), logLevel=logging.ERROR)
+            _log('WebappUpdater: failed - [{},{}]'.format(git_succeeded, db_succeeded), logLevel=logging.ERROR)
 
             if not db_succeeded:
                 self._db_updater.downgrade(db_revision)
@@ -249,7 +247,7 @@ class WebappUpdater(object):
         return ret
 
 
-class SourceUpdater(object):
+class SourceUpdater:
     """
     Git-based update system
     """
@@ -352,10 +350,10 @@ class SourceUpdater(object):
         git_revision = self.local_revision
 
         try:
-            self._git.merge('origin/{0}'.format(self.branch))
+            self._git.merge('origin/{}'.format(self.branch))
             git_succeeded = True
 
-        except sh.ErrorReturnCode as err:
+        except sh.ErrorReturnCode:
             git_succeeded = False
 
         if not git_succeeded:
@@ -457,10 +455,10 @@ class SourceUpdater(object):
         else:
             temp_status = []
             if self._commits_behind is not None and self._commits_behind > 0:
-                temp_status.append('{0} commit{1} behind'.format(self._commits_behind, '' if self._commits_behind == 1 else 's'))
+                temp_status.append('{} commit{} behind'.format(self._commits_behind, '' if self._commits_behind == 1 else 's'))
 
             if self._commits_ahead is not None and self._commits_ahead > 0:
-                temp_status.append('{0} commit{1} ahead'.format(self._commits_ahead, '' if self._commits_ahead == 1 else 's'))
+                temp_status.append('{} commit{} ahead'.format(self._commits_ahead, '' if self._commits_ahead == 1 else 's'))
 
             if len(temp_status) == 0:
                 self._status = 'Up to date!'
@@ -513,7 +511,7 @@ class SourceUpdater(object):
         return True
 
 
-class DBUpdater(object):
+class DBUpdater:
     """
     Database update system
     """
@@ -584,7 +582,7 @@ class DBUpdater(object):
 
                 for rev in reversed(revision_list):
                     try:
-                        _log('Applying database revision: {0}'.format(rev))
+                        _log('Applying database revision: {}'.format(rev))
                         command.upgrade(self._config, rev)
                     except sqlalchemy.exc.OperationalError as err:
                         if 'already exists' in str(err):
@@ -592,7 +590,7 @@ class DBUpdater(object):
                             self._stamp_database(rev)
 
             except sqlalchemy.exc.OperationalError as err:
-                _log('DBUpdater: failure - {0}'.format(err), logLevel=logging.ERROR)
+                _log('DBUpdater: failure - {}'.format(err), logLevel=logging.ERROR)
 
                 return False
 
@@ -605,14 +603,14 @@ class DBUpdater(object):
             command.downgrade(self._config, rev)
 
         except sqlalchemy.exc.OperationalError as err:
-            _log('DBUpdater: failed to downgrade release: {0}'.format(err), logLevel=logging.ERROR)
+            _log('DBUpdater: failed to downgrade release: {}'.format(err), logLevel=logging.ERROR)
             raise err
 
     def _stamp_database(self, rev):
         try:
             command.stamp(self._config, rev)
         except sqlalchemy.exc.OperationalError as err:
-            _log('DBUpdater: stamp database - failure - {0}'.format(err), logLevel=logging.ERROR)
+            _log('DBUpdater: stamp database - failure - {}'.format(err), logLevel=logging.ERROR)
             raise err
 
     def _open(self):
@@ -630,7 +628,7 @@ class DBUpdater(object):
         self._connection = self._context = None
 
 
-class FirmwareUpdater(object):
+class FirmwareUpdater:
     def __init__(self, filename, length):
         self._filename = filename
         self._wait_tick = 0
@@ -648,7 +646,7 @@ class FirmwareUpdater(object):
 
         except Exception as err:
             current_app.logger.error('Error updating firmware: %s' % err)
-            current_app.decoder.broadcast('firmwareupload', { 'stage': 'STAGE_ERROR', 'error': str(err) });
+            current_app.decoder.broadcast('firmwareupload', { 'stage': 'STAGE_ERROR', 'error': str(err) })
 
     def _stage_callback(self, stage, **kwargs):
         if stage == Firmware.STAGE_START:
