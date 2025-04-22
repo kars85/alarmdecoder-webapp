@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from flask import (Blueprint, render_template, current_app, request, flash,
                     redirect, url_for, abort)
 from flask_login import login_required, current_user
@@ -21,6 +22,7 @@ from .constants import (EVENT_TYPES, NOTIFICATION_TYPES, DEFAULT_SUBSCRIPTIONS,
                         EMAIL, PUSHOVER, TWILIO, PROWL, GROWL,
                         CUSTOM, TWIML, MATRIX, ZONE_FAULT, ZONE_RESTORE,
                         UPNPPUSH)
+from six.moves import range
 
 NOTIFICATION_TYPE_DETAILS = {
     'email': (EMAIL, EmailNotificationForm),
@@ -116,7 +118,7 @@ def create():
 @notifications.route('/create/<string:type>', methods=['GET', 'POST'])
 @login_required
 def create_by_type(type):
-    if type not in NOTIFICATION_TYPE_DETAILS.keys():
+    if type not in list(NOTIFICATION_TYPE_DETAILS.keys()):
         abort(404)
 
     type_id, form_type = NOTIFICATION_TYPE_DETAILS[type]

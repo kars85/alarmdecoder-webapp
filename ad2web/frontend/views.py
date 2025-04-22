@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from uuid import uuid4
 
 from flask import (Blueprint, render_template, current_app, request,

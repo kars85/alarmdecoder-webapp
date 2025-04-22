@@ -7,6 +7,7 @@ Create Date: 2016-02-18 15:28:04.037196
 """
 
 # revision identifiers, used by Alembic.
+from __future__ import absolute_import
 revision = '76ed239fa861'
 down_revision = 'fdc8fd4be3c0'
 

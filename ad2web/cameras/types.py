@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from flask import current_app
-import urllib
+import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error
 import os
 try:
     import cv2
@@ -46,7 +47,7 @@ class CameraSystem(object):
             if url_slash_index != -1:
                 url_slash_index += 2
                 stream_url = self._cameras[id][JPG_URL][:url_slash_index] + user_pass + self._cameras[id][JPG_URL][url_slash_index:]
-                stream = urllib.urlopen(stream_url)
+                stream = six.moves.urllib.request.urlopen(stream_url)
                 cascade = cv2.CascadeClassifier(self._xml_path)
 
                 #read the camera stream, hopefully capture a picture

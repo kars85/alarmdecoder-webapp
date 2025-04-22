@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from OpenSSL import crypto, SSL
 from sqlalchemy import Column, orm
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -21,7 +22,7 @@ class Notification(db.Model):
                                 cascade="all, delete-orphan")
 
     def get_setting(self, name, default=None):
-        if name in self.settings.keys():
+        if name in list(self.settings.keys()):
             return self.settings[name].value
 
         return default

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
 import datetime
 import signal
 import sys
@@ -14,6 +16,7 @@ from ad2web.decoder import Decoder
 from ad2web.extensions import db
 
 import logging
+import six
 
 app, appsocket = None, None
 
@@ -38,7 +41,7 @@ class RunCommand(Command):
                 dapp = DebuggedApplication(app, evalex=True)
                 appsocket.serve_forever()
 
-            except Exception, err:
+            except Exception as err:
                 app.logger.error("Error", exc_info=True)
 
         try:
@@ -64,12 +67,12 @@ class InitDBCommand(Command):
             from ad2web.notifications.models import NotificationMessage
             from ad2web.notifications.constants import DEFAULT_EVENT_MESSAGES
 
-            for event, message in DEFAULT_EVENT_MESSAGES.iteritems():
+            for event, message in six.iteritems(DEFAULT_EVENT_MESSAGES):
                 db.session.add(NotificationMessage(id=event, text=message))
 
             db.session.commit()
-        except Exception, err:
-            print("Database initialization failed: {0}".format(err))
+        except Exception as err:
+            print(("Database initialization failed: {0}".format(err)))
         else:
             print("Database initialization complete!")
 

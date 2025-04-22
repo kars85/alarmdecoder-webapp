@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import socket
 import struct
@@ -6,6 +7,7 @@ import threading
 import uuid
 import fcntl
 import time
+from six.moves import range
 
 try:
     import netifaces
@@ -14,8 +16,8 @@ except ImportError:
     has_netifaces = False
 
 from select import select
-from httplib import HTTPResponse
-from BaseHTTPServer import BaseHTTPRequestHandler
+from six.moves.http_client import HTTPResponse
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
 from StringIO import StringIO
 
 from .extensions import db
@@ -95,7 +97,7 @@ class DiscoveryServer(threading.Thread):
                         # TODO: Likely needs to be separate from this loop.
                         self._update()
                         
-                except Exception, err:
+                except Exception as err:
                     self._decoder.app.logger.error('Error in DiscoveryServer: {0}'.format(err), exc_info=True)
 
     def _handle_request(self, request, addr):
@@ -145,7 +147,7 @@ class DiscoveryServer(threading.Thread):
         with self._decoder.app.app_context():
             self._decoder.app.logger.debug('sending message to {0}: {1}'.format(addr, message))
 
-        for i in xrange(2): # NOTE: Sending multiple times due to UDP's unreliability.
+        for i in range(2): # NOTE: Sending multiple times due to UDP's unreliability.
             self._socket.sendto(message, addr)
             time.sleep(0.1)
 

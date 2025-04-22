@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import re
 import json
 from flask_wtf import FlaskForm as Form
@@ -18,6 +19,7 @@ from .constants import (NOTIFICATIONS, NOTIFICATION_TYPES, SUBSCRIPTIONS, DEFAUL
                         URLENCODE, JSON, XML, CUSTOM_METHOD_POST, CUSTOM_METHOD_GET_TYPE, UPNPPUSH)
 from .models import NotificationSetting
 from ..widgets import ButtonField, MultiCheckboxField
+import six
 
 
 class NotificationButtonForm(wtforms.Form):
@@ -27,7 +29,7 @@ class NotificationButtonForm(wtforms.Form):
 
 
 class CreateNotificationForm(Form):
-    type = SelectField(u'Notification Type', choices=[nt for t, nt in NOTIFICATIONS.iteritems()])
+    type = SelectField(u'Notification Type', choices=[nt for t, nt in six.iteritems(NOTIFICATIONS)])
 
     submit = SubmitField(u'Next')
     cancel = ButtonField(u'Cancel', onclick="location.href='/settings/notifications'")
@@ -83,7 +85,7 @@ class EditNotificationForm(Form):
     description = TextField(u'Description', [Required(), Length(max=255)], description=u'Brief description of this notification')
     suppress_timestamp = BooleanField(u'Suppress Timestamp?', [Optional()], description=u'Removes Timestamp from Message Body and Subject')
     time_field = FormField(TimeSettingsInternalForm)
-    subscriptions = MultiCheckboxField(u'Notification Events', choices=[(str(k), v) for k, v in SUBSCRIPTIONS.iteritems()])
+    subscriptions = MultiCheckboxField(u'Notification Events', choices=[(str(k), v) for k, v in six.iteritems(SUBSCRIPTIONS)])
 
     def populate_settings(self, settings, id=None):
         settings['subscriptions'] = self.populate_setting('subscriptions', json.dumps({str(k): True for k in self.subscriptions.data}))
@@ -96,7 +98,7 @@ class EditNotificationForm(Form):
     def populate_from_settings(self, id):
         subscriptions = self.populate_from_setting(id, 'subscriptions')
         if subscriptions:
-            self.subscriptions.data = [k if v == True else False for k, v in json.loads(subscriptions).iteritems()]
+            self.subscriptions.data = [k if v == True else False for k, v in six.iteritems(json.loads(subscriptions))]
 
         self.time_field.starttime.data = self.populate_from_setting(id, 'starttime', default='00:00:00')
         self.time_field.endtime.data = self.populate_from_setting(id, 'endtime', default='23:59:59')
@@ -438,7 +440,7 @@ class CustomPostForm(EditNotificationForm):
             custom = ast.literal_eval(custom)
             custom = dict((str(i['custom_key']), i['custom_value']) for i in custom)
 
-            for key, value in custom.iteritems():
+            for key, value in six.iteritems(custom):
                 CVForm = CustomValueForm()
                 CVForm.custom_key = key
                 CVForm.custom_value = value
@@ -507,7 +509,7 @@ class MatrixNotificationForm(Form):
 
     description = TextField(u'Description', [Required(), Length(max=255)], description=u'Brief description of this notification')
     time_field = FormField(TimeSettingsInternalForm)
-    subscriptions = MultiCheckboxField(u'Notification Events', choices=[(str(k), v) for k, v in SUBSCRIPTIONS.iteritems()])
+    subscriptions = MultiCheckboxField(u'Notification Events', choices=[(str(k), v) for k, v in six.iteritems(SUBSCRIPTIONS)])
     form_field = FormField(MatrixNotificationInternalForm)
 
     submit = SubmitField(u'Next')
@@ -529,7 +531,7 @@ class MatrixNotificationForm(Form):
     def populate_from_settings(self, id):
         subscriptions = self.populate_from_setting(id, 'subscriptions')
         if subscriptions:
-            self.subscriptions.data = [k if v == True else False for k, v in json.loads(subscriptions).iteritems()]
+            self.subscriptions.data = [k if v == True else False for k, v in six.iteritems(json.loads(subscriptions))]
 
         self.form_field.domain.data = self.populate_from_setting(id, 'domain')
         self.form_field.room_id.data = self.populate_from_setting(id, 'room_id')
@@ -540,7 +542,7 @@ class MatrixNotificationForm(Form):
             custom = ast.literal_eval(custom)
             custom = dict((str(i['custom_key']), i['custom_value']) for i in custom)
 
-            for key, value in custom.iteritems():
+            for key, value in six.iteritems(custom):
                 CVForm = CustomValueForm()
                 CVForm.custom_key = key
                 CVForm.custom_value = value

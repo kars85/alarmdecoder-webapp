@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import os
 import platform
 import hashlib
@@ -9,6 +10,9 @@ import json
 import re
 import socket
 import random
+import six
+from six.moves import map
+from six.moves import range
 try:
     import netifaces
     hasnetifaces = 1
@@ -61,7 +65,7 @@ try:
 except ImportError:
     hasservice = False
 
-import urllib2
+import six.moves.urllib.request, six.moves.urllib.error, six.moves.urllib.parse
 import ssl
 
 settings = Blueprint('settings', __name__, url_prefix='/settings')
@@ -220,7 +224,7 @@ def get_ethernet_info(device):
 
         eth_properties['device'] = device
         eth_properties['ipv4'] = addresses[netifaces.AF_INET]
-        if netifaces.AF_INET6 in addresses.keys():
+        if netifaces.AF_INET6 in list(addresses.keys()):
             eth_properties['ipv6'] = addresses[netifaces.AF_INET6]
         eth_properties['mac_address'] = addresses[netifaces.AF_LINK]
         eth_properties['default_gateway'] = gateways['default'][netifaces.AF_INET]
@@ -425,7 +429,7 @@ def _parse_network_file():
     text = open(NETWORK_FILE, 'r').read()
     #iface string should also contain dhcp/static address gateway netmask information according to the RE
     indexes = [s.start() for s in re.finditer('auto|iface|source|mapping|allow-|wpa-', text)]
-    result = map(text.__getslice__, indexes, indexes[1:] + [len(text)])
+    result = list(map(text.__getslice__, indexes, indexes[1:] + [len(text)]))
 
     return result
 
@@ -758,7 +762,7 @@ def import_backup():
                         continue
                     else:
                         filename = os.path.basename(member.name)
-                        if filename in EXPORT_MAP.keys():
+                        if filename in list(EXPORT_MAP.keys()):
                             _import_model(tar, member, EXPORT_MAP[filename])
 
                 db.session.commit()
@@ -770,11 +774,11 @@ def import_backup():
 
                 return redirect(url_for('frontend.index'))
 
-        except (tarfile.ReadError, KeyError), err:
+        except (tarfile.ReadError, KeyError) as err:
             current_app.logger.error('Import Error: {0}'.format(err))
             flash('Import Failed: Not a valid AlarmDecoder archive.', 'error')
 
-        except (SQLAlchemyError, ValueError), err:
+        except (SQLAlchemyError, ValueError) as err:
             db.session.rollback()
 
             current_app.logger.error('Import Error: {0}'.format(err))
@@ -792,7 +796,7 @@ def _import_model(tar, tarinfo, model):
 
     for itm in items:
         m = model()
-        for k, v in itm.iteritems():
+        for k, v in six.iteritems(itm):
             if isinstance(model.__table__.columns[k].type, db.DateTime) and v is not None:
                 v = datetime.strptime(v, '%Y-%m-%d %H:%M:%S.%f')
 
@@ -967,7 +971,7 @@ def port_forwarding():
 
 def get_external_ip():
     try:
-        my_ip = json.load(urllib2.urlopen(IP_CHECK_SERVER_URL, context=ssl._create_unverified_context()))['origin']
+        my_ip = json.load(six.moves.urllib.request.urlopen(IP_CHECK_SERVER_URL, context=ssl._create_unverified_context()))['origin']
     except Exception as e:
         return None
 

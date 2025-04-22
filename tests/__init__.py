@@ -7,6 +7,7 @@
     Ref: http://packages.python.org/Flask-Testing/
 """
 
+from __future__ import absolute_import
 from flask_testing import TestCase as Base, Twill
 
 from ad2web import create_app

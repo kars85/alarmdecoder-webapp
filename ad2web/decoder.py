@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import os
 import sys
 import time
@@ -7,6 +8,7 @@ import datetime
 import traceback
 import threading
 import binascii
+import six
 
 try:
     import miniupnpc
@@ -18,7 +20,7 @@ from socketio import socketio_manage
 from socketio.namespace import BaseNamespace
 from socketio.mixins import BroadcastMixin
 from socketio.server import SocketIOServer
-from socketioflaskdebug.debugger import SocketIODebugger
+from .socketioflaskdebug.debugger import SocketIODebugger
 
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -200,7 +202,7 @@ class Decoder(object):
             dbevmsgver = NotificationMessage.query.filter_by(id=EVMSG_VERSION).first()
             if dbevmsgver is None or dbevmsgver.text != DEFAULT_EVENT_MESSAGES[EVMSG_VERSION]:
                 current_app.logger.info('New EVENT message formats detected. Your customization will be lost.')
-                for event, message in DEFAULT_EVENT_MESSAGES.iteritems():
+                for event, message in six.iteritems(DEFAULT_EVENT_MESSAGES):
                     old = NotificationMessage.query.filter_by(id=event).first()
                     if old:
                         db.session.delete(old)
@@ -291,7 +293,7 @@ class Decoder(object):
                             device.ssl_ca = ca_cert.certificate_obj
                             device.ssl_certificate = internal_cert.certificate_obj
                             device.ssl_key = internal_cert.key_obj
-                        except NoResultFound, err:
+                        except NoResultFound as err:
                             self.app.logger.warning('No certificates found: %s', err[0], exc_info=True)
                             raise
 
@@ -301,11 +303,11 @@ class Decoder(object):
                     self.bind_events()
                     self.device.open(baudrate=self._device_baudrate, no_reader_thread=no_reader_thread)
 
-                except NoDeviceError, err:
+                except NoDeviceError as err:
                     self.app.logger.warning('Open failed: %s', err[0], exc_info=True)
                     raise
 
-                except SSL.Error, err:
+                except SSL.Error as err:
                     source, fn, message = err[0][0]
                     self.app.logger.warning('SSL connection failed: %s - %s', fn, message, exc_info=True)
                     raise
@@ -334,7 +336,7 @@ class Decoder(object):
         self.device.on_rfx_message += build_message_handler('rfx')
         try:
             self.device.on_aui_message += build_message_handler('aui')
-        except AttributeError, ex:
+        except AttributeError as ex:
             self.app.logger.warning('Could not bind event "on_aui_message": alarmdecoder library is probably out of date.')
 
         self.device.on_expander_message += build_message_handler('exp')
@@ -343,12 +345,12 @@ class Decoder(object):
         self.device.on_close += self._on_device_close
 
         # Bind the event handler to all of our events.
-        for event, device_event_name in EVENT_MAP.iteritems():
+        for event, device_event_name in six.iteritems(EVENT_MAP):
             try:
                 device_handler = getattr(self.device, device_event_name)
                 device_handler += build_event_handler(event)
 
-            except AttributeError, ex:
+            except AttributeError as ex:
                 self.app.logger.warning('Could not bind event "%s": alarmdecoder library is probably out of date.', device_event_name)
 
     def remove_events(self):
@@ -363,7 +365,7 @@ class Decoder(object):
             self.device.on_rfx_message.clear()
             try:
                 self.device.on_aui_message.clear()
-            except AttributeError, ex:
+            except AttributeError as ex:
                 self.app.logger.warning('Could not remove event "on_aui_message": alarmdecoder library is probably out of date.')
     
             self.device.on_expander_message.clear()
@@ -372,15 +374,15 @@ class Decoder(object):
             self.device.on_close.clear()
     
             # Clear mapped events.
-            for event, device_event_name in EVENT_MAP.iteritems():
+            for event, device_event_name in six.iteritems(EVENT_MAP):
                 try:
                     device_handler = getattr(self.device, device_event_name)
                     device_handler.clear()
     
-                except AttributeError, ex:
+                except AttributeError as ex:
                     self.app.logger.warning('Could not clear event "%s": alarmdecoder library is probably out of date.', device_event_name)
     
-        except AttributeError, ex:
+        except AttributeError as ex:
             self.app.logger.warning("Could not clear events: alarmdecoder library is probably out of date.")
 
     def refresh_notifier(self, id):
@@ -434,7 +436,7 @@ class Decoder(object):
 
             self.broadcast('message', { 'message': kwargs.get('message', None), 'message_type': ftype } )
 
-        except Exception, err:
+        except Exception as err:
             self.app.logger.error('Error while broadcasting message.', exc_info=True)
 
     def _handle_event(self, ftype, sender, **kwargs):
@@ -460,7 +462,7 @@ class Decoder(object):
 
             self.broadcast('event', kwargs)
 
-        except Exception, err:
+        except Exception as err:
             self.app.logger.error('Error while broadcasting event.', exc_info=True)
 
     def broadcast(self, channel, data={}):
@@ -484,7 +486,7 @@ class Decoder(object):
         :param packet: SocketIO packet to send.
         :type packet: dict
         """
-        for session, sock in self.websocket.sockets.iteritems():
+        for session, sock in six.iteritems(self.websocket.sockets):
             authenticated = sock.session.get('authenticated', False)
 
             if authenticated:
@@ -541,7 +543,7 @@ class DecoderThread(threading.Thread):
                         self._decoder.app.logger.info('Attempting to reconnect to the AlarmDecoder')
                         try:
                             self._decoder.open()
-                        except NoDeviceError, err:
+                        except NoDeviceError as err:
                             self._decoder.app.logger.error('Device not found: {0}'.format(err[0]))
 
                     # Handle service restart events
@@ -553,7 +555,7 @@ class DecoderThread(threading.Thread):
 
                     time.sleep(self.TIMEOUT)
 
-                except Exception, err:
+                except Exception as err:
                     self._decoder.app.logger.error('Error in DecoderThread: {0}'.format(err), exc_info=True)
 
 class VersionChecker(threading.Thread):
@@ -615,7 +617,7 @@ class VersionChecker(threading.Thread):
                         if check_time > self.last_check_time + self.version_checker_timeout:
                             self._decoder.app.logger.info('Checking for version updates - last check at: {0}'.format(datetime.datetime.fromtimestamp(self.last_check_time).strftime('%m-%d-%Y %H:%M:%S')))
                             self._decoder.updates = self._updater.check_updates()
-                            update_available = not all(not needs_update for component, (needs_update, branch, revision, new_revision, status, project_url) in self._decoder.updates.iteritems())
+                            update_available = not all(not needs_update for component, (needs_update, branch, revision, new_revision, status, project_url) in six.iteritems(self._decoder.updates))
 
                             current_app.jinja_env.globals['update_available'] = update_available
                             current_app.jinja_env.globals['firmware_update_available'] = self._updater.check_firmware()
@@ -628,7 +630,7 @@ class VersionChecker(threading.Thread):
                             db.session.commit()
 
 
-                    except Exception, err:
+                    except Exception as err:
                         self._decoder.app.logger.error('Error in VersionChecker: {0}'.format(err), exc_info=True)
 
             time.sleep(self.TIMEOUT)
@@ -670,7 +672,7 @@ class CameraChecker(threading.Thread):
                     for n in self._cameras.get_camera_ids():
                         self._cameras.write_image(n)
 
-                except Exception, err:
+                except Exception as err:
                     self._decoder.app.logger.error('Error in CameraChecker: {0}'.format(err), exc_info=True)
 
             time.sleep(self.TIMEOUT)
@@ -794,7 +796,7 @@ class ExportChecker(threading.Thread):
                             
                             self._exporter.removeOldFiles(self.days_to_keep)
                     
-                    except Exception, err:
+                    except Exception as err:
                         self._decoder.app.logger.error('Error in ExportChecker: {0}'.format(err), exc_info=True)
 
             time.sleep(self.TIMEOUT)
@@ -833,7 +835,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
 
                         self.socket.session['authenticated'] = True
 
-            except Exception, err:
+            except Exception as err:
                 self._alarmdecoder.app.logger.error('Websocket connection failed: {0}'.format(err))
 
     def on_keypress(self, key):
@@ -858,7 +860,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
                 else:
                     self._alarmdecoder.device.send(key)
 
-            except (CommError, AttributeError), err:
+            except (CommError, AttributeError) as err:
                 self._alarmdecoder.app.logger.error('Error sending keypress to device', exc_info=True)
 
     def on_firmwareupload(self, *args):
@@ -892,7 +894,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
                     self._alarmdecoder.firmware_length = -1
                     reopen_with_reader = True
 
-            except Exception, err:
+            except Exception as err:
                 current_app.logger.error('Error uploading firmware: %s', err)
 
                 self._alarmdecoder.broadcast('firmwareupload', { 'stage': 'STAGE_ERROR', 'error': 'Error uploading firmware.' })
@@ -929,11 +931,11 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
             self._alarmdecoder.close()
             self._alarmdecoder.open()
 
-        except NoDeviceError, err:
+        except NoDeviceError as err:
             results, details = 'FAIL', '{0}: {1}'.format(err[0], err[1][1])
             current_app.logger.error('Error while testing device open.', exc_info=True)
 
-        except Exception, err:
+        except Exception as err:
             results, details = 'FAIL', 'Failed to open the device: {0}'.format(err)
             current_app.logger.error('Error while testing device open.', exc_info=True)
 
@@ -983,7 +985,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
             self._alarmdecoder.device.on_config_received += on_config_received
             self._alarmdecoder.device.save_config()
 
-        except Exception, err:
+        except Exception as err:
             timer.cancel()
             if on_config_received in self._alarmdecoder.device.on_config_received:
                 self._alarmdecoder.device.on_config_received.remove(on_config_received)
@@ -1020,7 +1022,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
             self._alarmdecoder.device.on_sending_received += on_sending_received
             self._alarmdecoder.device.send("*\r")
 
-        except Exception, err:
+        except Exception as err:
             timer.cancel()
             if on_sending_received in self._alarmdecoder.device.on_sending_received:
                 self._alarmdecoder.device.on_sending_received.remove(on_sending_received)
@@ -1053,7 +1055,7 @@ class DecoderNamespace(BaseNamespace, BroadcastMixin):
             self._alarmdecoder.device.on_message += on_message
             self._alarmdecoder.device.send("*\r")
 
-        except Exception, err:
+        except Exception as err:
             timer.cancel()
             if on_message in self._alarmdecoder.device.on_message:
                 self._alarmdecoder.device.on_message.remove(on_message)
@@ -1067,7 +1069,7 @@ def handle_socketio(remaining):
     try:
         socketio_manage(request.environ, {'/alarmdecoder': DecoderNamespace}, { "alarmdecoder": g.alarmdecoder, "request": request})
 
-    except Exception, err:
+    except Exception as err:
         current_app.logger.error("Exception while handling socketio connection", exc_info=True)
 
     return Response()

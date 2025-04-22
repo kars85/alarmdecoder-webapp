@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import json
 import sh
 import os
@@ -7,7 +8,7 @@ import socket
 
 from functools import wraps
 from datetime import timedelta
-from httplib import OK, CREATED, ACCEPTED, NO_CONTENT, UNAUTHORIZED, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, SERVICE_UNAVAILABLE
+from six.moves.http_client import OK, CREATED, ACCEPTED, NO_CONTENT, UNAUTHORIZED, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY, SERVICE_UNAVAILABLE
 
 from flask import Blueprint, current_app, request, jsonify, abort, Response, render_template, redirect, url_for
 from flask_login import login_user, current_user, logout_user, login_required
@@ -32,6 +33,7 @@ from .constants import ERROR_NOT_AUTHORIZED, ERROR_DEVICE_NOT_INITIALIZED, ERROR
 from .models import APIKey
 from .forms import APIKeyForm
 from .utils import generate_api_key
+import six
 
 api_settings = Blueprint('api_settings', __name__, url_prefix='/api')
 api = Blueprint('api', __name__, url_prefix='/api/v1')
@@ -172,7 +174,7 @@ def alarmdecoder():
         })
 
     faulted_zones = []
-    for zid, z in current_app.decoder.device._zonetracker.zones.iteritems():
+    for zid, z in six.iteritems(current_app.decoder.device._zonetracker.zones):
         if z.status != ADZone.CLEAR:
             faulted_zones.append(z.zone)
 
@@ -580,10 +582,10 @@ def notifications():
         settings = req.get('settings', None)
         for name, value in settings.items():
             if name == 'subscriptions':
-                event_types = {v: k for k, v in EVENT_TYPES.iteritems()}
+                event_types = {v: k for k, v in six.iteritems(EVENT_TYPES)}
 
                 subscriptions_out = {}
-                for k, v in value.iteritems():
+                for k, v in six.iteritems(value):
                     subscriptions_out[str(event_types[k])] = v
 
                 value = json.dumps(subscriptions_out)
@@ -638,10 +640,10 @@ def notifications_by_id(id):
                     setting = NotificationSetting(name=name)
 
                 if name == 'subscriptions':
-                    event_types = {v: k for k, v in EVENT_TYPES.iteritems()}
+                    event_types = {v: k for k, v in six.iteritems(EVENT_TYPES)}
 
                     subscriptions_out = {}
-                    for k, v in value.iteritems():
+                    for k, v in six.iteritems(value):
                         subscriptions_out[str(event_types[k])] = v
 
                     value = json.dumps(subscriptions_out)
@@ -844,8 +846,8 @@ def users():
             return jsonify(build_error(ERROR_RECORD_ALREADY_EXISTS, 'User already exists with the specified username.')), CONFLICT
 
         # Convert role/status fields into what they should be.
-        role_types = {v: k for k, v in USER_ROLE.iteritems()}
-        status_types = {v: k for k, v in USER_STATUS.iteritems()}
+        role_types = {v: k for k, v in six.iteritems(USER_ROLE)}
+        status_types = {v: k for k, v in six.iteritems(USER_STATUS)}
 
         role = role_types[role]
         status = status_types[status]
@@ -886,8 +888,8 @@ def users_by_id(id):
         status = req.get('status', None)
 
         # Convert role/status fields into what they should be.
-        role_types = {v: k for k, v in USER_ROLE.iteritems()}
-        status_types = {v: k for k, v in USER_STATUS.iteritems()}
+        role_types = {v: k for k, v in six.iteritems(USER_ROLE)}
+        status_types = {v: k for k, v in six.iteritems(USER_STATUS)}
 
         if name is not None:
             user.name = name

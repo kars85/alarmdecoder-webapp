@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from functools import wraps, update_wrapper
 
 from flask import abort, make_response, request, current_app
@@ -7,6 +8,7 @@ from flask_login import current_user
 from datetime import timedelta
 from .settings.models import Setting
 from .utils import user_is_anonymous
+import six
 
 def admin_required(f):
     @wraps(f)
@@ -31,9 +33,9 @@ def crossdomain(origin=None, methods=None, headers=None,
                 automatic_options=True):
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, basestring):
+    if headers is not None and not isinstance(headers, six.string_types):
         headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, basestring):
+    if not isinstance(origin, six.string_types):
         origin = ', '.join(origin)
     if isinstance(max_age, timedelta):
         max_age = max_age.total_seconds()

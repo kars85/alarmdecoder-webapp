@@ -8,6 +8,8 @@ Author: Giampaolo Rodola' <g.rodola [AT] gmail [DOT] com>
 License: MIT
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import time
 import errno

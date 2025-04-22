@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from werkzeug.urls import url_quote
 
 from ad2web.user import User

@@ -24,6 +24,7 @@ logs
 uploads
 openid
 
-env
+.env
 temp
 webapp.sublime-*
+.aider*

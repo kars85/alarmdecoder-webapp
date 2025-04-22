@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from wtforms.widgets import html_params, ListWidget, CheckboxInput
 from wtforms import Field, SelectMultipleField
 from flask import Markup 

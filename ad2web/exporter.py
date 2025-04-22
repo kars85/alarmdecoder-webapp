@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import platform
 import hashlib
@@ -19,8 +20,9 @@ from .utils import make_dir, tar_add_directory, tar_add_textfile
 from .settings import Setting
 from .settings.constants import EXPORT_MAP
 from datetime import datetime, timedelta
-from utils import INSTANCE_FOLDER_PATH
+from .utils import INSTANCE_FOLDER_PATH
 from flask import Response
+import six
 
 class Exporter(object):
     EXPORT_PATH = os.path.join(INSTANCE_FOLDER_PATH, 'exports')
@@ -45,7 +47,7 @@ class Exporter(object):
         with tarfile.open(name=bytes(self.filename), mode=self.WRITE_MODE, fileobj=self.fileobj) as tar:
             tar_add_directory(tar, self.prefix)
 
-            for export_file, model in EXPORT_MAP.iteritems():
+            for export_file, model in six.iteritems(EXPORT_MAP):
                 tar_add_textfile(tar, export_file, bytes(self._export_model(model)), self.prefix)
 
     def writeFile(self):

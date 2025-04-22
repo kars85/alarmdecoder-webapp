@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from flask_wtf import FlaskForm as Form
 from wtforms.fields.html5 import URLField, EmailField, TelField
 from wtforms import (ValidationError, HiddenField, TextField, HiddenField,

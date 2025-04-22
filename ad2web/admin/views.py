@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required
 

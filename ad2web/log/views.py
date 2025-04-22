@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 import os
 import numbers
 import cgi
@@ -81,7 +82,7 @@ def get_log_data(lines):
 
     try:
         log_text = LogWatcher.tail(log_file, lines)
-    except IOError, err:
+    except IOError as err:
         return json.dumps([str(err)])
 
     return json.dumps(log_text)
@@ -95,7 +96,7 @@ def get_events_paging_data():
     try:
         #get results from datatable via XHR
         results = DataTablesServer(request).output_result()
-    except TypeError, ex:
+    except TypeError as ex:
         APP.logger.warning("Error processing datatables request: {0}".format(ex))
 
     return json.dumps(results)
@@ -154,20 +155,20 @@ class DataTablesServer:
                 self.result_data = EventLogEntry.query.filter(EventLogEntry.message.like('%' + filter + '%')).order_by(EventLogEntry.timestamp.desc()).limit(limit).offset(start)
                 self.cardinality_filtered = self.result_data.count()
                 self.cardinality = EventLogEntry.query.filter(EventLogEntry.message.like('%' + filter + '%')).count()
-            except Exception, err:
+            except Exception as err:
                 pass
         else:
             try:
                 self.result_data = EventLogEntry.query.order_by(EventLogEntry.timestamp.desc()).limit(limit).offset(start)
                 self.cardinality_filtered = self.result_data.count()
                 self.cardinality = EventLogEntry.query.order_by(EventLogEntry.timestamp.desc()).count()
-            except Exception, err:
+            except Exception as err:
                 pass
 
     #here we determine the filter value for the search box and apply to the queries
     def filtering(self):
         filter = None
-        if( self.request_values.has_key('sSearch')) and (self.request_values['sSearch'] != "" ):
+        if( 'sSearch' in self.request_values) and (self.request_values['sSearch'] != "" ):
             filter = cgi.escape(str(self.request_values['sSearch']))
 
         return filter

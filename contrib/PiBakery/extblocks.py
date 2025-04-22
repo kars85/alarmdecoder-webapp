@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import xml.etree.ElementTree as ET
 
 
 def find_rec(node, element, result):
-     print 'foo', element, node
+     print('foo', element, node)
      for item in node.findall(element):
-         print 'b'
+         print('b')
          result.append(item)
          find_rec(item, element, result)
      return result
@@ -22,7 +24,7 @@ def find_recR(node, element):
 tree = ET.parse("AlarmDecoder_WebApp_PiBakery_Recipe.xml")
 for  elt in tree.iter():
     if elt.tag[-5:] == 'field':
-       print "'%s'" % (elt.text.strip())
+       print("'%s'" % (elt.text.strip()))
     #else:
        #print "****** %s: '%s'" % (elt.tag, elt.text.strip())
 
