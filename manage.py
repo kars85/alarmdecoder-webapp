@@ -1,7 +1,16 @@
-# manage.py (relevant parts)
-from flask_script import Manager, Command
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+
+# Fix sys path if running from source.
+if __package__ is None and os.path.dirname(os.path.dirname(__file__)) not in sys.path:
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from flask_script import Manager, Command, Option
 from ad2web import create_app, init_app
-# ... other imports
+from ad2web.commands import RunCommand, InitDBCommand # Import the commands
 
 app, appsocket = None, None
 
