@@ -1,3 +1,17 @@
+# ad2web/api/views.py
+"""
+Defines the Flask routes for the AD2Web RESTful API.
+
+This module sets up two Blueprints:
+- `api_settings`: Handles API-related settings pages (like key management)
+                  and serving the Swagger/OpenAPI documentation.
+- `api`: Handles the core v1 API endpoints for interacting with the
+         AlarmDecoder device, zones, notifications, cameras, users, and system.
+
+Most API endpoints require authentication via an API key passed either in the
+'Authorization' header or as an 'apikey' query parameter. Access control
+(e.g., admin checks) is applied where necessary.
+"""
 import json
 import sh
 import os
@@ -39,11 +53,16 @@ request_user = None
 @api_settings.route('/')
 @login_required
 def index():
+    """Renders the main API settings page."""
     return render_template('api/index.html')
 
 @api_settings.route('/api_doc', methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 def api_doc():
+    """Serves the OpenAPI (Swagger) JSON specification.
+
+    Dynamically updates the 'host' field based on the request's FQDN.
+    """
     project_root = current_app.config['PROJECT_ROOT']
     json_url = os.path.join( project_root, "ad2web/static", "alarmdecoder.json")
     data = json.load(open(json_url))
@@ -59,12 +78,14 @@ def api_doc():
 @api_settings.route('/swagger', methods=['GET', 'OPTIONS'])
 @login_required
 def swagger():
+    """Redirects to the Swagger UI interface."""
     return redirect(url_for('static', filename='swagger/index.html'))
 
 @api_settings.route('/keys')
 @login_required
 @admin_required
 def keys():
+    """Renders the API key management page (Admin only)."""
     users = User.query.all()
 
     return render_template('api/keys.html', users=users)
@@ -73,6 +94,7 @@ def keys():
 @login_required
 @admin_required
 def generate_key(user_id):
+    """Generates or regenerates an API key for a specific user (Admin only)."""
     apikey = APIKey.query.filter_by(user_id=user_id).first()
     if not apikey:
         apikey = APIKey(user_id=user_id)
@@ -88,6 +110,7 @@ def generate_key(user_id):
 @login_required
 @admin_required
 def disable_key(user_id):
+    """Disables (removes) the API key for a specific user (Admin only)."""
     apikey = APIKey.query.filter_by(user_id=user_id).first()
     if not apikey:
         apikey = APIKey(user_id=user_id)
@@ -101,6 +124,17 @@ def disable_key(user_id):
 
 ##### Utility
 def api_authorized(f):
+    """Decorator to check for valid API key authorization.
+
+    Verifies the presence and validity of an API key provided either in the
+    'Authorization' header or as an 'apikey' query parameter. It also checks
+    if the AlarmDecoder device is initialized and sets the `request_user` global
+    variable for use within the decorated route.
+
+    Returns:
+        Flask Response: An error response (401, 422, 503) if authorization fails,
+                      otherwise calls the decorated function.
+    """
     @wraps(f)
     def wrapped(*args, **kwargs):
         global request_user
@@ -134,6 +168,15 @@ def api_authorized(f):
     return wrapped
 
 def build_error(code, message):
+    """Constructs a standardized JSON error response body.
+
+    Args:
+        code (int): An error code constant (e.g., ERROR_NOT_AUTHORIZED).
+        message (str): A human-readable error message.
+
+    Returns:
+        dict: A dictionary representing the JSON error structure.
+    """
     return {
         'error': {
             'code': code,
@@ -142,6 +185,14 @@ def build_error(code, message):
     }
 
 def check_admin(user):
+    """Checks if a given user has administrative privileges.
+
+    Args:
+        user (User): The user object to check.
+
+    Returns:
+        bool: True if the user is an admin, False otherwise.
+    """
     if not user:
         return False
 
@@ -152,6 +203,12 @@ def check_admin(user):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def alarmdecoder():
+    """Gets the current status of the AlarmDecoder device.
+
+    Returns:
+        JSON: A dictionary containing various status flags and information
+              about the connected alarm panel (power, ready, armed, zones, etc.).
+    """
     mode = current_app.decoder.device.mode
     if mode == ADEMCO:
         mode = 'ADEMCO'
@@ -199,6 +256,15 @@ def alarmdecoder():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def alarmdecoder_send():
+    """Sends keypresses to the alarm panel via the AlarmDecoder.
+
+    Expects a JSON body with a 'keys' field containing the string of keys
+    to send. Special keys like <F1>, <PANIC> are supported.
+
+    Returns:
+        Response: 204 No Content on success.
+                  422 Unprocessable Entity if 'keys' field is missing.
+    """
     req = request.get_json()
     keys = req.get('keys', None)
     if keys is None:
@@ -227,6 +293,16 @@ def alarmdecoder_send():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def alarmdecoder_events():
+    """Handles UPnP-style event subscriptions for AlarmDecoder events.
+
+    SUBSCRIBE: Registers a callback URL to receive notifications for events.
+               Requires HOST, CALLBACK, and TIMEOUT headers.
+    UNSUBSCRIBE: Removes an existing subscription.
+                 Requires HOST and SID headers.
+
+    Returns:
+        Response: A UPnP-compliant response with appropriate headers (SID, TIMEOUT).
+    """
     device = current_app.decoder.device
 
     if request.method == 'SUBSCRIBE':
@@ -277,6 +353,12 @@ def alarmdecoder_events():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def alarmdecoder_reboot():
+    """Reboots the AlarmDecoder device (Admin only).
+
+    Returns:
+        Response: 204 No Content on success.
+                  401 Unauthorized if the user is not an admin.
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
@@ -285,6 +367,16 @@ def alarmdecoder_reboot():
     return "", NO_CONTENT
 
 def _build_alarmdecoder_configuration_data(device, short=False):
+    """Helper function to build a dictionary of AlarmDecoder configuration.
+
+    Args:
+        device (AlarmDecoder): The AlarmDecoder device instance.
+        short (bool): If True, returns a minimal representation (unused here).
+
+    Returns:
+        dict or None: A dictionary containing configuration parameters, or None
+                      if the device is not provided.
+    """
     if not device:
         return None
 
@@ -312,6 +404,17 @@ def _build_alarmdecoder_configuration_data(device, short=False):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def alarmdecoder_configuration():
+    """Gets or updates the AlarmDecoder device configuration (PUT requires Admin).
+
+    GET: Returns the current configuration settings.
+    PUT: Updates configuration settings based on the provided JSON body.
+         Requires admin privileges.
+
+    Returns:
+        JSON: The current (or updated) configuration data on success (200 OK).
+              401 Unauthorized if PUT is attempted without admin rights.
+              422 Unprocessable Entity for invalid values (e.g., invalid 'mode').
+    """
     device = current_app.decoder.device
 
     if request.method == 'GET':
@@ -358,6 +461,16 @@ def alarmdecoder_configuration():
 
 ##### Zone routes
 def _build_zone_data(zone, short=False):
+    """Helper function to build a dictionary representation of a Zone.
+
+    Args:
+        zone (Zone): The Zone database model instance.
+        short (bool): If True, returns a minimal representation (unused here).
+
+    Returns:
+        dict or None: A dictionary containing zone details (id, name, description),
+                      or None if the zone object is not provided.
+    """
     if not Zone:
         return None
 
@@ -373,6 +486,19 @@ def _build_zone_data(zone, short=False):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def zones():
+    """Gets a list of all zones or creates a new zone (POST requires Admin).
+
+    GET: Returns a list of all configured zones.
+    POST: Creates a new zone definition. Requires admin privileges and a JSON
+          body with 'zone_id', 'name', and optionally 'description'.
+
+    Returns:
+        JSON: List of zones (GET) or the newly created zone data (POST).
+              200 OK (GET), 201 Created (POST).
+              401 Unauthorized if POST is attempted without admin rights.
+              409 Conflict if a zone with the given ID already exists (POST).
+              422 Unprocessable Entity if required fields are missing (POST).
+    """
     if request.method == 'GET':
         ret = {}
         zones = Zone.query.all()
@@ -416,6 +542,24 @@ def zones():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def zones_by_id(id):
+    """Gets, updates, or deletes a specific zone (PUT/DELETE require Admin).
+
+    Args:
+        id (int): The zone ID.
+
+    GET: Returns details for the specified zone.
+    PUT: Updates the specified zone. Requires admin privileges and a JSON body
+         with fields to update ('zone_id', 'name', 'description').
+    DELETE: Deletes the specified zone. Requires admin privileges.
+
+    Returns:
+        JSON: Zone details (GET, PUT). 200 OK.
+              Response: 204 No Content (DELETE).
+              401 Unauthorized if PUT/DELETE attempted without admin rights.
+              404 Not Found if the zone ID does not exist.
+              409 Conflict if PUT attempts to change zone_id to an existing one.
+              422 Unprocessable Entity if required fields are missing (PUT).
+    """
     zone = Zone.query.filter_by(zone_id=id).first()
     if zone is None:
         return jsonify(build_error(ERROR_RECORD_DOES_NOT_EXIST, 'Zone does not exist.')), NOT_FOUND
@@ -468,6 +612,18 @@ def zones_by_id(id):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def zones_fault(id):
+    """Simulates a fault on a specific zone (Admin only).
+
+    Note: This typically only works for zones emulated by the AlarmDecoder.
+
+    Args:
+        id (int): The zone ID to fault.
+
+    Returns:
+        Response: 204 No Content on success.
+                  401 Unauthorized if the user is not an admin.
+                  404 Not Found if the zone ID does not exist.
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
@@ -484,6 +640,18 @@ def zones_fault(id):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def zones_restore(id):
+    """Simulates restoring a specific zone from a fault condition (Admin only).
+
+    Note: This typically only works for zones emulated by the AlarmDecoder.
+
+    Args:
+        id (int): The zone ID to restore.
+
+    Returns:
+        Response: 204 No Content on success.
+                  401 Unauthorized if the user is not an admin.
+                  404 Not Found if the zone ID does not exist.
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
@@ -498,6 +666,18 @@ def zones_restore(id):
 
 ##### Notification routes
 def _build_notification_data(notification, short=False):
+    """Helper function to build a dictionary representation of a Notification.
+
+    Args:
+        notification (Notification): The Notification database model instance.
+        short (bool): If True, returns a minimal representation (omits settings).
+
+    Returns:
+        dict or None: A dictionary containing notification details. Sensitive
+                      settings like username/password are omitted. Subscription
+                      settings are transformed for readability. Returns None if
+                      the notification object is not provided.
+    """
     if notification is None:
         return None
 
@@ -542,6 +722,20 @@ def _build_notification_data(notification, short=False):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def notifications():
+    """Gets a list of notifications or creates a new one.
+
+    GET: Returns a list of notifications accessible by the authenticated user.
+         Admins see all notifications; regular users see only their own.
+    POST: Creates a new notification. Requires a JSON body with 'type',
+          'description', 'user_id', and 'settings'. Non-admins can only
+          create notifications for themselves.
+
+    Returns:
+        JSON: List of notifications (GET) or the newly created notification (POST).
+              200 OK (GET), 201 Created (POST).
+              401 Unauthorized if user attempts to create for another user (non-admin).
+              422 Unprocessable Entity if required fields are missing or invalid (POST).
+    """
     if request.method == 'GET':
         if request_user.role_code == ADMIN:
             notifications = Notification.query.all()
@@ -598,6 +792,25 @@ def notifications():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def notifications_by_id(id):
+    """Gets, updates, or deletes a specific notification.
+
+    Requires the authenticated user to be an admin or the owner of the notification.
+
+    Args:
+        id (int): The notification ID.
+
+    GET: Returns details for the specified notification.
+    PUT: Updates the specified notification. Requires a JSON body with fields
+         to update ('description', 'user_id', 'settings'). The 'type' cannot be changed.
+    DELETE: Deletes the specified notification.
+
+    Returns:
+        JSON: Notification details (GET, PUT). 200 OK.
+              Response: 204 No Content (DELETE).
+              401 Unauthorized if user lacks permission.
+              404 Not Found if the notification ID does not exist.
+              422 Unprocessable Entity for invalid updates (e.g., changing type).
+    """
     ret = { }
 
     notification = Notification.query.filter_by(id=id).first()
@@ -660,6 +873,17 @@ def notifications_by_id(id):
 
 ##### Camera routes
 def _build_camera_data(camera, short=False):
+    """Helper function to build a dictionary representation of a Camera.
+
+    Args:
+        camera (Camera): The Camera database model instance.
+        short (bool): If True, returns a minimal representation (omits URL).
+
+    Returns:
+        dict or None: A dictionary containing camera details. Sensitive info
+                      like username/password is omitted. Returns None if the
+                      camera object is not provided.
+    """
     if camera is None:
         return None
 
@@ -679,6 +903,20 @@ def _build_camera_data(camera, short=False):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def cameras():
+    """Gets a list of cameras or creates a new one.
+
+    GET: Returns a list of cameras accessible by the authenticated user.
+         Admins see all cameras; regular users see only their own.
+    POST: Creates a new camera. Requires a JSON body with 'name', 'url',
+          'user_id', and optionally 'username', 'password'. Non-admins can only
+          create cameras for themselves.
+
+    Returns:
+        JSON: List of cameras (GET) or the newly created camera (POST).
+              200 OK (GET), 201 Created (POST).
+              401 Unauthorized if user attempts to create for another user (non-admin).
+              422 Unprocessable Entity if required fields are missing (POST).
+    """
     ret = { }
 
     if request.method == 'GET':
@@ -726,6 +964,24 @@ def cameras():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def cameras_by_id(id):
+    """Gets, updates, or deletes a specific camera.
+
+    Requires the authenticated user to be an admin or the owner of the camera.
+
+    Args:
+        id (int): The camera ID.
+
+    GET: Returns details for the specified camera.
+    PUT: Updates the specified camera. Requires a JSON body with fields
+         to update ('name', 'url', 'user_id', 'username', 'password').
+    DELETE: Deletes the specified camera.
+
+    Returns:
+        JSON: Camera details (GET, PUT). 200 OK.
+              Response: 204 No Content (DELETE).
+              401 Unauthorized if user lacks permission.
+              404 Not Found if the camera ID does not exist.
+    """
     ret = { }
 
     camera = Camera.query.filter_by(id=id).first()
@@ -776,6 +1032,16 @@ def cameras_by_id(id):
 
 ##### User routes
 def _build_user_data(user, short=False):
+    """Helper function to build a dictionary representation of a User.
+
+    Args:
+        user (User): The User database model instance.
+        short (bool): If True, returns a minimal representation (unused here).
+
+    Returns:
+        dict or None: A dictionary containing user details (excluding password).
+                      Returns None if the user object is not provided.
+    """
     if not user:
         return None
 
@@ -794,6 +1060,19 @@ def _build_user_data(user, short=False):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def users():
+    """Gets a list of all users or creates a new user (Admin only).
+
+    GET: Returns a list of all users.
+    POST: Creates a new user. Requires a JSON body with 'name', 'email',
+          'password', 'role', and 'status'.
+
+    Returns:
+        JSON: List of users (GET) or the newly created user data (POST).
+              200 OK (GET), 201 Created (POST).
+              401 Unauthorized if the requesting user is not an admin.
+              409 Conflict if a user with the given email or name already exists (POST).
+              422 Unprocessable Entity if required fields are missing or invalid (POST).
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
@@ -859,6 +1138,29 @@ def users():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def users_by_id(id):
+    """Gets, updates, or deletes a specific user.
+
+    Requires the authenticated user to be an admin, or the user being acted upon
+    if only viewing/updating their own details (DELETE requires Admin).
+
+    Args:
+        id (int): The user ID.
+
+    GET: Returns details for the specified user.
+    PUT: Updates the specified user. Requires a JSON body with fields to update
+         ('name', 'email', 'role', 'status'). Admins can update any user;
+         regular users can only update their own name and email.
+    DELETE: Deletes the specified user (Admin only). Cannot delete user ID 1
+            or the currently authenticated user.
+
+    Returns:
+        JSON: User details (GET, PUT). 200 OK.
+              Response: 204 No Content (DELETE).
+              401 Unauthorized if user lacks permission.
+              404 Not Found if the user ID does not exist.
+              422 Unprocessable Entity for invalid operations (e.g., deleting self,
+                  deleting user 1, invalid role/status).
+    """
     ret = { }
 
     user = User.query.filter_by(id=id).first()
@@ -923,6 +1225,12 @@ def users_by_id(id):
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def system():
+    """Gets system information like uptime and webapp update status.
+
+    Returns:
+        JSON: A dictionary containing system uptime and webapp update details.
+              200 OK.
+    """
     uptime = ''
     with open('/proc/uptime') as f:
         seconds = float(f.readline().split()[0])
@@ -946,6 +1254,15 @@ def system():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def system_reboot():
+    """Reboots the host system (Admin only).
+
+    Executes the `reboot` command.
+
+    Returns:
+        JSON: Empty body. 202 Accepted on success.
+              401 Unauthorized if the user is not an admin or if the command fails
+                  due to permissions.
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
@@ -962,6 +1279,14 @@ def system_reboot():
 @crossdomain(origin="*", headers=['Content-type', 'api_key', 'Authorization'])
 @api_authorized
 def system_shutdown():
+    """Shuts down the host system (Admin only).
+
+    Executes the `shutdown` command.
+
+    Returns:
+        JSON: Empty body. 202 Accepted on success.
+              401 Unauthorized if the user is not an admin.
+    """
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
