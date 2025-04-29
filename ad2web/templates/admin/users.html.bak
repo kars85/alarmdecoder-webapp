@@ -1,0 +1,47 @@
+{% extends "settings/layout.html" %}
+
+{% block pagejs %}
+{% include 'js/admin/users.js' %}
+{% endblock %}
+{% block body %}
+<div id="data">
+    <div id="loading"></div>
+    <div id="datatable" style="display: none;">
+        <table id="users-table" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Role</th>
+                    <th>Created Date</th>
+                {% if users %}
+                    <th>Actions</th>
+                {% endif %}
+                </tr>
+            </thead>
+            {% for user in users %}
+            <tr>
+                <td><a href="{{ url_for('admin.user', user_id=user.id)}}">{{ user.name }}</a></td>
+                <td>{{ user.status }}</td>
+                <td>{{ user.role }}</td>
+                <td>{{ user.created_time.strftime('%m-%d-%Y %H:%m') }}</td>
+                <td>
+                    {% if user.id != 1 %}
+                    <a href="{{ url_for('admin.remove', user_id=user.id)}}"><img style="text-align: center; float: right; margin-right: 15px;" src="{{ url_for('static', filename='img/red_x.png') }}"/></a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <br>
+    <a id="clear" class="btn btn-primary" href="{{ url_for('admin.user') }}">New User</a><a id="failed_logins" style="float: right; margin-top: 5px; margin-right: 5px;" class="btn btn-primary" href="{{ url_for('admin.failed_logins') }}">View Failed Logins</a>
+</div>
+{% endblock %}
+
+{% block js_btm %}
+<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/datatables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
+{% endblock %}

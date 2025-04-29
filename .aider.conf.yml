@@ -9,12 +9,12 @@ set-env:
   - VERTEX_LOCATION=us-central1
 
 # 3) (Optional) Inject your Gemini API key from your .env:
-api-key:
-  - gemini=${GEMINI_API_KEY}
+#api-key:
+#  - gemini=${GEMINI_API_KEY}
 
 # 4) Chain‑of‑thought tuning:
-reasoning-effort: high
-thinking-tokens: 8k
+#reasoning-effort: high
+#thinking-tokens: 8k
 
 # 5) Architect/editor split:
 architect: true

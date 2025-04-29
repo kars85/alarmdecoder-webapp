@@ -3,11 +3,12 @@
 {% block pagejs %}
 {% include 'js/admin/failed_logins.js' %}
 {% endblock %}
+
 {% block body %}
 <div id="data">
     <div id="loading"></div>
     <div id="datatable" style="display: none;">
-        <table id="users-table" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0">
+        <table id="failed-table" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -16,22 +17,17 @@
                     <th>Time</th>
                 </tr>
             </thead>
-            {% for user in failed_logins %}
-            <tr>
-                <td>{{ user.name }}</td>
-                <td>{{ user.ip_address }}</td>
-                <td>{{ user.user_agent_string }}</td>
-                <td>{{ user.login_time.strftime('%m-%d-%Y %H:%m') }}</td>
-            </tr>
+            <tbody>
+            {% for attempt in failed_logins %}
+                <tr>
+                    <td>{{ attempt.name }}</td>
+                    <td>{{ attempt.ip_address }}</td>
+                    <td>{{ attempt.user_agent_string }}</td>
+                    <td>{{ attempt.login_time.strftime('%m-%d-%Y %H:%M') }}</td>
+                </tr>
             {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>
-{% endblock %}
-
-{% block js_btm %}
-<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/datatables.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
 {% endblock %}

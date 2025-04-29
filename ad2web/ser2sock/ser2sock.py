@@ -1,6 +1,4 @@
 import os
-
-import six.moves.configparser
 import psutil
 import signal
 import sh

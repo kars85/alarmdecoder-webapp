@@ -1,4 +1,4 @@
-ad2web/settings/views.py
+#ad2web/settings/views.py
 # -*- coding: utf-8 -*-
 
 # Standard library imports
@@ -23,7 +23,9 @@ from flask import Blueprint, render_template, current_app, request, flash, Respo
 from flask_login import login_required, current_user
 import sh
 import six
-from six.moves import urllib
+import urllib.request
+import urllib.parse
+import urllib.error
 from sqlalchemy.exc import SQLAlchemyError
 
 # Conditional third-party imports

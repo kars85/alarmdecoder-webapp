@@ -3,6 +3,7 @@
 {% block pagejs %}
 {% include 'js/admin/users.js' %}
 {% endblock %}
+
 {% block body %}
 <div id="data">
     <div id="loading"></div>
@@ -14,34 +15,35 @@
                     <th>Status</th>
                     <th>Role</th>
                     <th>Created Date</th>
-                {% if users %}
-                    <th>Actions</th>
-                {% endif %}
+                    {% if users %}
+                        <th>Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
+            <tbody>
             {% for user in users %}
-            <tr>
-                <td><a href="{{ url_for('admin.user', user_id=user.id)}}">{{ user.name }}</a></td>
-                <td>{{ user.status }}</td>
-                <td>{{ user.role }}</td>
-                <td>{{ user.created_time.strftime('%m-%d-%Y %H:%m') }}</td>
-                <td>
-                    {% if user.id != 1 %}
-                    <a href="{{ url_for('admin.remove', user_id=user.id)}}"><img style="text-align: center; float: right; margin-right: 15px;" src="{{ url_for('static', filename='img/red_x.png') }}"/></a>
-                    {% endif %}
-                </td>
-            </tr>
+                <tr>
+                    <td><a href="{{ url_for('users.edit', user_id=user.id) }}">{{ user.name }}</a></td>
+                    <td class="status-cell" data-user-id="{{ user.id }}" data-status-code="{{ user.status_code }}">
+                        <a href="#" class="toggle-status">{{ user.status }}</a>
+                    </td>
+                    <td>{{ user.role }}</td>
+                    <td>{{ user.created_time.strftime('%m-%d-%Y %H:%M') }}</td>
+                    <td>
+                        {% if user.id != 1 %}
+                        <a href="{{ url_for('users.delete', user_id=user.id) }}" class="delete-user">
+                            <img src="{{ url_for('static', filename='img/red_x.png') }}" alt="Delete"/>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
             {% endfor %}
+            </tbody>
         </table>
     </div>
     <br>
-    <a id="clear" class="btn btn-primary" href="{{ url_for('admin.user') }}">New User</a><a id="failed_logins" style="float: right; margin-top: 5px; margin-right: 5px;" class="btn btn-primary" href="{{ url_for('admin.failed_logins') }}">View Failed Logins</a>
+    <a id="clear" class="btn btn-primary" href="{{ url_for('users.create') }}">New User</a>
+    <a id="failed_logins" class="btn btn-primary" style="float: right; margin-top: 5px; margin-right: 5px;"
+       href="{{ url_for('users.failed_logins') }}">View Failed Logins</a>
 </div>
-{% endblock %}
-
-{% block js_btm %}
-<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/datatables.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
 {% endblock %}

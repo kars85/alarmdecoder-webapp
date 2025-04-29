@@ -1,16 +1,12 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
-
-{% block css %}
-{% endblock %}
 
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function() {
-        createFormTooltip('#zone_id', 'The numeric zone id passed through the system.');
-        createFormTooltip('#name', 'The name to associate with the zone.\n\nEx: Front Door.');
-        createFormTooltip('#description', 'The detailed description of a zone.');
+        createFormTooltip('#zone_id', 'The numeric zone ID reported by the panel.');
+        createFormTooltip('#name', 'A short name for this zone (e.g., Front Door).');
+        createFormTooltip('#description', 'A longer description of the zone.');
     });
 </script>
 {% endblock %}
@@ -19,7 +15,4 @@
 <div class="settings_wrapper">
     {{ render_form(url_for('zones.create'), form) }}
 </div>
-{% endblock %}
-
-{% block js_btm %}
 {% endblock %}
