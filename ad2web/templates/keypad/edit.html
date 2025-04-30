@@ -1,24 +1,22 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
-{% block css %}
-{% endblock %}
+{% block css %}{% endblock %}
 
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function() {
-        createFormTooltip('#label', 'The text on the button.');
-        createFormTooltip('#code', 'The alarm keys to send on press of button.');
+        // Provide tooltips for form fields (same as create form)
+        createFormTooltip('#text', 'The text on the button.');
+        createFormTooltip('#code', 'The alarm keys to send on press of the button.');
     });
 </script>
 {% endblock %}
 
 {% block body %}
 <div class="settings_wrapper">
-    {{ render_form(url_for('keypad.edit_button', id=id), form) }}
+    {{ render_form(url_for('keypad.edit_button', button_id=id), form) }}
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

@@ -1,5 +1,4 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
 {% block css %}
@@ -10,8 +9,7 @@
 </style>
 {% endblock %}
 
-{% block pagejs %}
-{% endblock %}
+{% block pagejs %}{% endblock %}
 
 {% block body %}
 <div id="data">
@@ -20,21 +18,20 @@
     <h3>Advanced Settings</h3>
     <ul>
         <li><a href="{{ url_for('settings.host') }}">Host</a>: Configure host settings.</li>
-        <li><a href="{{ url_for('settings.configure_system_email') }}">System Email</a>: Configure system-wide email (used for password recovery)</li>
+        <li><a href="{{ url_for('settings.configure_system_email') }}">System Email</a>: Configure system-wide email (used for notifications)</li>
         <li><a href="{{ url_for('api_settings.index') }}">API</a>: Manage API and keys.</li>
-        <li><a href="{{ url_for('settings.switch_branch') }}">Branch</a>: Use to switch webapp your between stable and development branches.</li>
-        <li><a href="{{ url_for('update.check_for_updates') }}">Updates</a>: Check for and apply updates from current branch.</li>
-        <li><a href="{{ url_for('update.update_firmware') }}">Firmware Update</a>: Update the firmware on your AlarmDecoder.</li>
-        <li><a href="{{ url_for('settings.system_diagnostics') }}">Diagnostics</a>: Perform tests on your device and see missing modules.</li>
-        <li><a href="{{ url_for('setup.index') }}">Setup</a>: Go through the process of setting up your AlarmDecoder.
-        <li><a href="{{ url_for('settings.import') }}">Import</a> / <a href="{{ url_for('settings.export') }}">Export</a> settings.</li>
+        <li><a href="{{ url_for('settings.switch_branch') }}">Branch</a>: Switch webapp and API code branches.</li>
+        <li><a href="{{ url_for('update.check_for_updates') }}">Updates</a>: Check for and apply software updates.</li>
+        <li><a href="{{ url_for('update.update_firmware') }}">Firmware Update</a>: Update the AlarmDecoder firmware.</li>
+        <li><a href="{{ url_for('settings.system_diagnostics') }}">Diagnostics</a>: Perform system diagnostics and check missing modules.</li>
+        <li><a href="{{ url_for('setup.index') }}">Setup</a>: Run the initial setup wizard.</li>
+        <li><a href="{{ url_for('settings.import_backup') }}">Import</a> / <a href="{{ url_for('settings.export') }}">Export</a> settings.</li>
         <li><a href="{{ url_for('settings.port_forwarding') }}">Forward Ports</a>: Use UPnP to forward ports.</li>
-        <li><a href="{{ url_for('settings.configure_updater') }}">Updater Settings</a>: Use to configure software updater.</li>
+        <li><a href="{{ url_for('settings.configure_updater') }}">Updater Settings</a>: Configure the software update checker.</li>
         <li><a href="{{ url_for('settings.configure_exports') }}">Configure Exports</a>: Configure automated settings exports.</li>
     </ul>
     </p>
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

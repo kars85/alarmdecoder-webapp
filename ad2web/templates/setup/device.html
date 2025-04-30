@@ -6,18 +6,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/smoothness/jquery-ui-1.10.4.custom.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-confirm.min.css') }}">
 <style type="text/css">
-#info_dialog{
-    position: relative;
-}
-.progress_label {
-    position: absolute;
-    bottom: 15%;
-}
-#progressbar {
-    position: absolute;
-    bottom: 0;
-    width: 90%;
-}
+    /* Styles for panel info dialog and progress */
+    #info_dialog { position: relative; }
+    .progress_label { position: absolute; bottom: 15%; }
+    #progressbar { position: absolute; bottom: 0; width: 90%; }
 </style>
 {% endblock %}
 
@@ -30,53 +22,45 @@
     <h3>AlarmDecoder Settings</h3>
     <div>
         <p>
-            Finally, we need to configure the AlarmDecoder itself.  Most of these settings are fine when set to the default, but the Keypad Address needs to be configured specific to your panel.
+            Finally, configure the AlarmDecoder device itself. Most settings can remain at their defaults, but the Keypad Address should be set to an address enabled on your alarm panel (unique to this device).
         </p>
         <p>
-              "SE" panels need to be set to address 31 but on other panels you are welcome to use any free keypad address you have after it has been enabled on your panel.  Check your panel documentation, or call your alarm system provider, to add one for the AlarmDecoder to use.
+            For Honeywell **SE** panels, use address 31. For other Honeywell/Ademco panels, use any free address (after enabling it on the panel). Refer to your alarm panel documentation or consult your alarm provider to ensure the address is available for the AlarmDecoder.
         </p>
-        <p id="honeywellHelper">For some Honeywell/Ademco panels, clicking the Get Panel Info button will provide you with your installer code and more.  This only works on panels that support the AUI protocol.  You will be notified if it is not supported when you click.
+        <p id="honeywellHelper">
+            Tip: For some Honeywell/Ademco panels, clicking "Get Panel Info" can retrieve the installer code and more (for panels supporting AUI protocol). If unsupported, you will be notified.
         </p>
     </div>
-<div id="info_dialog" style="display: none;">
-    <div id="panel_version" style="display: none;">
+    <!-- Hidden info dialog elements (populated by device.js when "Get Panel Info" is used) -->
+    <div id="info_dialog" style="display: none;">
+        <div id="panel_version" style="display: none;"></div>
+        <div id="panel_firmware" style="display: none;"></div>
+        <div id="asciicode" style="display: none;"></div>
+        <div id="numdevices" style="display: none;"></div>
+        <div id="devices" style="display: none;"><b>Possible Keypads</b></div>
+        <br/>
+        <div class="progress_label" style="display: none;">Starting...</div>
+        <div id="progressbar" style="display: none;"></div>
     </div>
-    <div id="panel_firmware" style="display: none;">
-    </div>
-    <div id="asciicode" style="display: none;">
-    </div>
-    <div id="numdevices" style="display: none;">
-    </div>
-    <div id="devices" style="display: none;">
-    <b>Possible Keypads</b>
-    </div>
-    <br/>
-    <div class="progress_label" style="display: none;">Starting...</div>
-    <div id="progressbar" style="display: none;"></div>
-</div>
-    <button id="getPanelInfo" class="btn btn-primary">Get Panel Info</button><br/><br/><div id="loading"></div>
+    <!-- Action buttons for panel info and address mask helpers -->
+    <button id="getPanelInfo" class="btn btn-primary">Get Panel Info</button>
+    <br/><br/>
+    <div id="loading"></div>
     {{ render_form(url_for('setup.device'), form) }}
-    <button id="address_mask_builder">Build Address Mask</button>
-    <button id="internal_address_mask_builder">Build Address Mask</button>
+    <!-- Buttons to trigger address mask building dialog (for address_mask and internal_address_mask) -->
+    <button id="address_mask_builder" type="button" class="btn btn-info">Build Address Mask</button>
+    <button id="internal_address_mask_builder" type="button" class="btn btn-info">Build Address Mask</button>
 </div>
-<div id="dialog" style="display:none" title="Keypad Addresses">
-    <img id="exit" src="{{ url_for('static', filename='img/red_x.png') }}" style="float: right;" height="24" width="24"/>
-    <div id="keypad-mask-instructions">Please select the keypad addresses you would like to see messages for:</div>
-    <table id="keypad-mask-table" border="0" style="margin-top: 10px;">
-    </table>
-    <table id="template-table" style="display: none;">
-        <tr>
-            <td>
-                <label style="display: inline-block;" for="address_checkbox_{{n}}">Address {{n}}</label><input style="display: inline-block; margin-left: 10px !important; margin-bottom: 3px;" type="checkbox" id="address_checkbox_{{n}}" name="address_checkbox_{{n}}" checked/></td>
-            </d>
-        </tr>
-    </table>
+
+<!-- Dialog for building keypad address mask (opened by device.js) -->
+<div id="dialog" style="display:none;" title="Keypad Addresses">
+    <img id="exit" src="{{ url_for('static', filename='img/red_x.png') }}" style="float: right;" height="24" width="24" alt="Close"/>
+    <div id="keypad-mask-instructions">
+        Please select the keypad addresses you want the AlarmDecoder to emulate, then click OK.
+    </div>
+    <!-- (Checkable list of addresses will be populated here by device.js) -->
 </div>
 {% endblock %}
 
 {% block js_btm %}
-<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery-confirm.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
 {% endblock %}

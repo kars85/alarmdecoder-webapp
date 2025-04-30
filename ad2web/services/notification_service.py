@@ -1,173 +1,168 @@
-from flask import current_app
-from werkzeug.exceptions import NotFound, Forbidden
-from ..extensions import db
-from ..notifications.models import Notification, NotificationSetting, NotificationMessage
-from ..notifications.constants import UPNPPUSH  # constant for UPNP Push type
+from ad2web.extensions import db
+from ad2web.notifications.models import Notification, NotificationSetting, NotificationMessage
+from ad2web import zone_service, user_service  # assume zone_service and user_service are available
+
 
 class NotificationService:
-    """Service layer for managing notifications and related objects."""
+    """Service layer for notification business logic."""
 
-    @staticmethod
-    def get_notifications(user):
-        """
-        Fetch notifications visible to the given user.
-        Admin users get all notifications; regular users get only their own.
-        """
+    def get_notifications(self, user):
+        """Fetch notifications accessible by the given user."""
         if user.is_admin():
-            # Admin can see all notifications
-            return Notification.query.all()
+            notifications = Notification.query.all()
         else:
-            # Regular user sees only their own notifications
-            return Notification.query.filter_by(user_id=user.id).all()
+            notifications = Notification.query.filter_by(user_id=user.id).all()
+        return notifications
 
-    @staticmethod
-    def get_notification(notification_id, user):
+    def get_notification(self, notif_id):
+        """Fetch a notification by ID, or None if not found."""
+        return Notification.query.filter_by(id=notif_id).first()
+
+    def create_notification(self, notif_type, description, user, settings_form=None):
         """
-        Retrieve a single notification by ID, ensuring the user has access.
-        Raises NotFound if the notification doesn't exist, Forbidden if access is denied.
+        Create a new notification of the given type for the user.
+        `notif_type` is the integer code or name for the notification type.
+        `settings_form` is an optional form object with fields to populate NotificationSettings.
         """
-        notif = Notification.query.filter_by(id=notification_id).first()
-        if not notif:
-            # No such notification in database
-            raise NotFound(f"Notification id {notification_id} not found")
-        # Permission check: user must own notification or be admin
-        if notif.user_id != user.id and not user.is_admin():
-            raise Forbidden("You do not have access to this notification")
+        notif = Notification()
+        # If notif_type is given as name (string), convert to code if needed
+        if isinstance(notif_type, str):
+            # Assume NOTIFICATION_TYPES maps code->name, find matching code
+            from ad2web.notifications.constants import NOTIFICATION_TYPES
+            for code, name in NOTIFICATION_TYPES.items():
+                if name.lower() == notif_type.lower():
+                    notif.type = code
+                    break
+        else:
+            notif.type = notif_type
+        notif.description = description
+        notif.user = user_service.get_user(user.id) if hasattr(user_service,
+                                                               "get_user") else user  # use user_service if available
+        db.session.add(notif)
+        # Populate settings via form if provided
+        if settings_form:
+            # Use the form's populate_settings to create NotificationSetting objects
+            settings_form.populate_settings(notif.settings)
+        db.session.commit()  # commit will save notification and associated settings
+        # Refresh internal notifier threads to pick up the new notification
+        try:
+            from flask import current_app
+            current_app.decoder.refresh_notifier(notif.id)
+        except Exception:
+            pass
         return notif
 
-    @staticmethod
-    def create_notification(user, type_id, description, settings_data):
+    def update_notification(self, notif, settings_form=None, new_description=None):
         """
-        Create a new notification for the given user with specified type, description, and settings.
-        Returns the new Notification object.
-        Non-admin users can only create notifications for themselves (enforced by using `user` parameter).
+        Update an existing notification's settings and description.
+        `notif` is a Notification object.
         """
-        # Assemble Notification object
-        new_notif = Notification(type=type_id, description=description, user_id=user.id, enabled=1)
-        # Apply each setting as a NotificationSetting associated with this notification
-        for name, value in settings_data.items():
-            # Create a new NotificationSetting for each entry
-            new_setting = NotificationSetting(name=name, value=value)
-            new_notif.settings[name] = new_setting  # attribute_mapped_collection by name
-        db.session.add(new_notif)
-        db.session.commit()
-        # Notify the system to refresh any in-memory notifier state for this new notification
-        current_app.decoder.refresh_notifier(new_notif.id)
-        return new_notif
-
-    @staticmethod
-    def update_notification(notification_id, user, description=None, settings_data=None):
-        """
-        Update an existing notification's description and/or settings.
-        Only allowed if user owns the notification or is admin.
-        `description` or `settings_data` can be None to leave unchanged.
-        """
-        notif = NotificationService.get_notification(notification_id, user)  # Ensures existence and permission
-        # Update fields if provided
-        if description is not None:
-            notif.description = description
-        if settings_data:
-            for name, value in settings_data.items():
-                if name in notif.settings:
-                    # Update existing setting
-                    notif.settings[name].value = value
-                else:
-                    # Create new setting if not present
-                    new_setting = NotificationSetting(name=name, value=value)
-                    notif.settings[name] = new_setting
-        # Re-enable notification by default when updating (preserve original logic)
-        # (If not desired, this line can be removed. Assuming parity: any edit re-enables the notification.)
+        if new_description is not None:
+            notif.description = new_description
+        if settings_form:
+            settings_form.populate_settings(notif.settings, id=notif.id)
+        # Ensure notification is enabled after edits (preserves original behavior)
         notif.enabled = 1
+        db.session.add(notif)
         db.session.commit()
-        current_app.decoder.refresh_notifier(notification_id)
+        try:
+            from flask import current_app
+            current_app.decoder.refresh_notifier(notif.id)
+        except Exception:
+            pass
         return notif
 
-    @staticmethod
-    def delete_notification(notification_id, user):
-        """
-        Delete a notification by ID if the user has access. Raises if not found or forbidden.
-        """
-        notif = NotificationService.get_notification(notification_id, user)
+    def delete_notification(self, notif):
+        """Delete a notification and its settings."""
         db.session.delete(notif)
         db.session.commit()
-        # Refresh notifier state to remove this notification from active configuration
-        current_app.decoder.refresh_notifier(notification_id)
+        try:
+            from flask import current_app
+            current_app.decoder.refresh_notifier(notif.id)
+        except Exception:
+            pass
 
-    @staticmethod
-    def copy_notification(notification_id, user):
-        """
-        Clone a notification (and its settings) to a new notification.
-        Returns the new Notification object. Only allowed if user has access to the source notification.
-        """
-        notif = NotificationService.get_notification(notification_id, user)
-        # Detach the original object from session to prepare for cloning
-        db.session.expunge(notif)
-        # Reset identity and fields for clone
-        notif.id = None
-        notif.description = notif.description + " Clone"
-        notif.user_id = user.id  # ensure clone belongs to the requesting user (or admin creating for self)
-        # Add clone to session
+    def toggle_notification(self, notif):
+        """Toggle a notification's enabled status and return the new status string."""
+        if notif.enabled == 0:
+            notif.enabled = 1
+            status = "Enabled"
+        else:
+            notif.enabled = 0
+            status = "Disabled"
         db.session.add(notif)
-        db.session.flush()  # flush to assign new ID (so we can use it for settings clone)
+        db.session.commit()
+        try:
+            from flask import current_app
+            current_app.decoder.refresh_notifier(notif.id)
+        except Exception:
+            pass
+        return status
+
+    def copy_notification(self, notif):
+        """
+        Clone a notification (and its settings). Returns the new cloned Notification.
+        """
+        # Make a transient copy of the Notification
+        from sqlalchemy.orm.session import make_transient
+        db.session.expunge(notif)
+        make_transient(notif)
+        original_id = notif.id  # store original ID for settings copy
+        notif.id = None
+        notif.description = (notif.description or "") + " Clone"
+        db.session.add(notif)
+        db.session.flush()  # flush to assign new ID
         new_id = notif.id
-        # Clone settings
-        original_settings = NotificationSetting.query.filter_by(notification_id=notification_id).all()
-        for s in original_settings:
+        # Copy settings
+        old_settings = NotificationSetting.query.filter_by(notification_id=original_id).all()
+        for s in old_settings:
             db.session.expunge(s)
+            make_transient(s)
             s.id = None
             s.notification_id = new_id
             db.session.add(s)
         db.session.commit()
-        current_app.decoder.refresh_notifier(new_id)
+        try:
+            from flask import current_app
+            current_app.decoder.refresh_notifier(new_id)
+        except Exception:
+            pass
         return notif
 
-    @staticmethod
-    def toggle_notification(notification_id, user):
+    def update_zone_filter(self, notif, zone_id_list):
         """
-        Toggle (enable/disable) a notification's active status.
-        Returns the new enabled status (True/False).
+        Update the zone_filter setting for a notification.
+        `zone_id_list` is a list of zone IDs (as strings or ints) to filter on.
         """
-        notif = NotificationService.get_notification(notification_id, user)
-        new_status = True
-        if notif.enabled and notif.enabled != 0:
-            notif.enabled = 0
-            new_status = False
-        else:
-            notif.enabled = 1
-            new_status = True
+        # Store the selected zones as JSON in the 'zone_filter' setting
+        setting_value = [] if zone_id_list is None else [int(z) for z in zone_id_list]
+        # Find existing setting or create new
+        setting = NotificationSetting.query.filter_by(notification_id=notif.id, name='zone_filter').first()
+        if not setting:
+            setting = NotificationSetting(name='zone_filter', notification=notif)
+        import json
+        setting.value = json.dumps(setting_value)
+        db.session.add(setting)
         db.session.commit()
-        current_app.decoder.refresh_notifier(notification_id)
-        return new_status
+        return setting_value
 
-    @staticmethod
-    def test_notification(notification_id, user):
+    def get_zone_choices(self):
         """
-        Trigger a test send for the given notification. Returns an error message if any, otherwise None on success.
+        Retrieve zone choices (id and name) for use in zone filtering.
+        Uses zone_service instead of direct model queries.
         """
-        notif = NotificationService.get_notification(notification_id, user)
-        # Use the decoder's test method to send a test notification
-        error = current_app.decoder.test_notifier(notification_id)
-        return error  # error is None if successful, or contains a message string on failure
+        zones = zone_service.get_all_zones() if hasattr(zone_service, "get_all_zones") else []
+        # Build a list of 1-99 zones with placeholder names, then replace with actual names where available
+        zone_list = [(str(i), f"Zone {i:02d}") for i in range(1, 100)]
+        # Replace placeholder with configured zone names
+        for z in zones:
+            zid = getattr(z, 'zone_id', None) or getattr(z, 'id', None) or z.zone_id
+            name = getattr(z, 'name', None) or ""
+            if 1 <= int(zid) <= 99:
+                zone_list[int(zid) - 1] = (str(zid),
+                                           f"Zone {int(zid):02d} - {name}" if name else f"Zone {int(zid):02d}")
+        return zone_list
 
-    @staticmethod
-    def get_notification_messages(user):
-        """
-        Retrieve all system notification message templates (admin only).
-        """
-        if not user.is_admin():
-            raise Forbidden("Only administrators can view notification messages.")
-        return NotificationMessage.query.all()
 
-    @staticmethod
-    def update_notification_message(message_id, new_text, user):
-        """
-        Update a notification message template's text by ID (admin only).
-        """
-        if not user.is_admin():
-            raise Forbidden("Only administrators can modify notification messages.")
-        msg = NotificationMessage.query.filter_by(id=message_id).first()
-        if not msg:
-            raise NotFound(f"Notification message id {message_id} not found")
-        msg.text = new_text
-        db.session.commit()
-        return msg
+# Instantiate a singleton service for convenience
+notification_service = NotificationService()

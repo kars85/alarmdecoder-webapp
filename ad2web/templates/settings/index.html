@@ -21,13 +21,13 @@
     <p>
         <ul>
             <li><a href="{{ url_for('notifications.index') }}">Notifications</a>: Configure notifications from panel events.</li>
-            <li><a href="{{ url_for('zones.index') }}">Zones</a>: Add names to zones to notifications.</li>
+            <li><a href="{{ url_for('zones.index') }}">Zones</a>: Add names to zones for notifications.</li>
             {% if ssl == True %}
                 <li><a href="{{ url_for('certificate.index') }}">Certificates</a>: Configure SSL Certificates.</li>
             {% endif %}
             <li><a href="{{ url_for('keypad.custom_index') }}">Keypad Settings</a>: Custom keypad buttons.</li>
-            <li><a href="{{ url_for('cameras.cam_list') }}">Cameras</a>: Administer camera settings. (mjpeg only)</li>
-            <li><a href="{{ url_for('admin.users') }}">Users</a>: Configure users for the system.</li>
+            <li><a href="{{ url_for('cameras.cam_list') }}">Cameras</a>: Administer camera settings (MJPEG only).</li>
+            <li><a href="{{ url_for('admin.users') }}">Users</a>: Configure system users.</li>
             <li><a href="{{ url_for('settings.password') }}">Password</a>: Change your user password.</li>
             <li><a href="{{ url_for('settings.advanced') }}">Advanced</a>: Advanced settings and diagnostics.</li>
         <ul>
@@ -35,5 +35,4 @@
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

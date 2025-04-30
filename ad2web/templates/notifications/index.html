@@ -1,20 +1,12 @@
 {% extends 'settings/layout.html' %}
-{% from "macros/_form.html" import render_form %}
-
-{% block css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/smoothness/jquery-ui-1.10.4.custom.css') }}"/>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}"/>
+{% block js %}
+    {% include 'js/notifications/index.js' %}
 {% endblock %}
-
-{% block pagejs %}
-{% include 'js/notifications/index.js' %}
-{% endblock %}
-
 {% block body %}
 <div class="settings_wrapper">
     <div id="loading"></div>
-    <div id="datatable">
-        <table id="notifications-table" class="table table-striped table-bordered dt-responsive nowrap">
+    <div id="datatable" style="display:none;">
+        <table id="notifications-table" class="table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%">
             <thead>
                 <tr>
                     <th>Type</th>
@@ -25,46 +17,47 @@
             </thead>
             <tbody>
             {% for notification in notifications %}
-                <tr id="notification-{{ notification.id }}">
+                {% if notification.user_id == current_user.id or current_user.is_admin() %}
+                <tr data-id="{{ notification.id }}">
                     <td>{{ TYPES[notification.type] }}</td>
-                    <td>{{ notification.user.name }}</td>
+                    <td>{{ notification.user.name if notification.user else '' }}</td>
                     <td>
-                        <a href="{{ url_for('notifications.edit', id=notification.id) }}">{{ notification.description }}</a>
+                        <!-- Description clickable to edit via AJAX modal -->
+                        <a href="{{ url_for('notifications.edit', id=notification.id) }}" class="edit-notif-link">{{ notification.description }}</a>
                     </td>
                     <td style="text-align: center;">
                         {% if notification.enabled %}
-                            <a href="{{ url_for('notifications.toggle_notification', id=notification.id) }}" 
-                               class="toggle-notif" data-id="{{ notification.id }}">
-                                <span style="color: green; font-size: large; text-decoration: none;" title="Disable">&#10004;&nbsp;</span>
+                            <a href="{{ url_for('notifications.toggle_notification', id=notification.id) }}" class="toggle-notif" title="Disable">
+                                <span style="color:green; font-size: large;">&#10004;</span>
                             </a>
                         {% else %}
-                            <a href="{{ url_for('notifications.toggle_notification', id=notification.id) }}" 
-                               class="toggle-notif" data-id="{{ notification.id }}">
-                                <span style="color: red; font-size: large; text-decoration: none;" title="Enable">&#10004;&nbsp;</span>
+                            <a href="{{ url_for('notifications.toggle_notification', id=notification.id) }}" class="toggle-notif" title="Enable">
+                                <span style="color:red; font-size: large;">&#10004;</span>
                             </a>
                         {% endif %}
-                        <a href="{{ url_for('notifications.copy_notification', id=notification.id) }}">
-                            <img style="height: 18px; width: 20px;" src="{{ url_for('static', filename='img/copy.png') }}" alt="Copy" title="Copy"/>
+                        &nbsp;&nbsp;
+                        <a href="{{ url_for('notifications.copy_notification', id=notification.id) }}" class="copy-notif" title="Copy">
+                            <img src="{{ url_for('static', filename='img/copy.png') }}" alt="Copy"/>
                         </a>
-                        <a href="{{ url_for('notifications.remove', id=notification.id) }}" 
-                           class="remove-notif" data-id="{{ notification.id }}">
-                            <img style="height: 18px; width: 18px;" src="{{ url_for('static', filename='img/red_x.png') }}" alt="Remove" title="Remove"/>
+                        &nbsp;&nbsp;
+                        <a href="#" data-href="{{ url_for('notifications.remove', id=notification.id) }}" class="remove-notif" title="Remove">
+                            <img src="{{ url_for('static', filename='img/red_x.png') }}" alt="Remove"/>
                         </a>
                     </td>
                 </tr>
+                {% endif %}
             {% endfor %}
             </tbody>
         </table>
     </div>
-    <br/>
-    <a id="clear" class="btn btn-primary" href="{{ url_for('notifications.create') }}">New Notification</a>
+    <br>
+    <!-- "New Notification" opens create form in a modal via AJAX -->
+    <button id="new-notif-btn" class="btn btn-primary" data-url="{{ url_for('notifications.create') }}">New Notification</button>
     <a id="custom_button" class="btn" href="{{ url_for('notifications.messages') }}">Customize Messages</a>
 </div>
-{% endblock %}
 
-{% block js_btm %}
-<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/datatables.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
+<!-- Modal container for AJAX-loaded forms (Create/Edit) -->
+<div class="modal fade" id="notification-modal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg"><div class="modal-content"></div></div>
+</div>
 {% endblock %}

@@ -1,28 +1,25 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
-{% block css %}
-{% endblock %}
+{% block css %}{% endblock %}
 
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function() {
-        createFormTooltip('#import_file', 'Please choose a file that contains your settings to import.');
+        createFormTooltip('#import_file', 'Choose a backup file (.tar.gz) containing settings to import.');
     });
 </script>
 {% endblock %}
+
 {% block body %}
 <div class="settings_wrapper">
     <h3>Import Settings</h3>
-
     <div style="color: red;">WARNING: This will replace all current settings!</div>
     <br>
     <div>
-        {{ render_form(url_for('settings.import'), form) }}
+        {{ render_form(url_for('settings.import_backup'), form) }}
     </div>
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

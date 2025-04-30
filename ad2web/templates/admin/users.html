@@ -16,23 +16,27 @@
                     <th>Role</th>
                     <th>Created Date</th>
                     {% if users %}
-                        <th>Actions</th>
+                    <th>Actions</th>
                     {% endif %}
                 </tr>
             </thead>
             <tbody>
             {% for user in users %}
                 <tr>
-                    <td><a href="{{ url_for('users.edit', user_id=user.id) }}">{{ user.name }}</a></td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">{{ user.name }}</a>
+                    </td>
                     <td class="status-cell" data-user-id="{{ user.id }}" data-status-code="{{ user.status_code }}">
-                        <a href="#" class="toggle-status">{{ user.status }}</a>
+                        <a href="#" class="toggle-status" data-url="{{ url_for('admin.toggle_user', user_id=user.id) }}">
+                            {{ user.status }}
+                        </a>
                     </td>
                     <td>{{ user.role }}</td>
                     <td>{{ user.created_time.strftime('%m-%d-%Y %H:%M') }}</td>
                     <td>
                         {% if user.id != 1 %}
-                        <a href="{{ url_for('users.delete', user_id=user.id) }}" class="delete-user">
-                            <img src="{{ url_for('static', filename='img/red_x.png') }}" alt="Delete"/>
+                        <a href="{{ url_for('admin.delete_user', user_id=user.id) }}" class="delete-user">
+                            <img src="{{ url_for('static', filename='img/red_x.png') }}" alt="Delete" />
                         </a>
                         {% endif %}
                     </td>
@@ -42,8 +46,10 @@
         </table>
     </div>
     <br>
-    <a id="clear" class="btn btn-primary" href="{{ url_for('users.create') }}">New User</a>
+    <a id="clear" class="btn btn-primary" href="{{ url_for('admin.new_user') }}">New User</a>
     <a id="failed_logins" class="btn btn-primary" style="float: right; margin-top: 5px; margin-right: 5px;"
-       href="{{ url_for('users.failed_logins') }}">View Failed Logins</a>
+       href="{{ url_for('admin.failed_logins') }}">View Failed Logins</a>
+    <!-- Hidden CSRF token for AJAX requests -->
+    <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token() }}">
 </div>
 {% endblock %}

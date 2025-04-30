@@ -6,11 +6,11 @@
     $(document).ready(function() {
         // Tooltips for form fields
         createFormTooltip('#name', 'The name for the user.');
-        createFormTooltip('#email', 'The email for the user.');
+        createFormTooltip('#email', 'The email address for the user.');
         createFormTooltip('#password', 'The password for the user.');
-        createFormTooltip('#password_again', 'Confirm password for the user.');
-        createFormTooltip('#role_code-0', 'Assign as admin user.');
-        createFormTooltip('#role_code-1', 'Assign as standard user.');
+        createFormTooltip('#password_again', 'Confirm the password for the user.');
+        createFormTooltip('#role_code-0', 'Assign this user as an admin.');
+        createFormTooltip('#role_code-1', 'Assign this user as a standard user.');
         createFormTooltip('#status_code-0', 'User will be inactive (cannot log in).');
         createFormTooltip('#status_code-1', 'Mark user as new (first login pending).');
         createFormTooltip('#status_code-2', 'User is active and can log in.');
@@ -20,9 +20,9 @@
 
 {% block body %}
 <div id="data">
-    {{ render_form(url_for('users.create') if user_id is none else url_for('users.edit', user_id=user_id), form) }}
+    {{ render_form(url_for('admin.new_user') if user_id is none else url_for('admin.edit_user', user_id=user_id), form) }}
     {% if user_id %}
-    <p><a href="{{ url_for('user.history', user_id=user_id) }}">View Login History</a></p>
+    <!-- Optionally, provide a link to view this user's login history if implemented -->
     {% endif %}
 </div>
 {% endblock %}

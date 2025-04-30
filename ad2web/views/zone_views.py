@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, abort
 from flask_login import login_required
 
-from .forms import ZoneForm
-from .service import ZoneService
+from ad2web.forms.zones_form import ZoneForm
+from ad2web.services.zone_service import ZoneService
 from ..decorators import admin_required
 
 zones_bp = Blueprint('zones', __name__, url_prefix='/settings/zones')

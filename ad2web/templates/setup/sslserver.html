@@ -1,0 +1,37 @@
+{% from "macros/_form.html" import render_form %}
+
+{% extends 'setup/layout.html' %}
+
+{% block css %}
+{% endblock %}
+
+{% block pagejs %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Tooltips for form fields
+        createFormTooltip('#config_path', 'Filesystem path to the ser2sock configuration (e.g., /etc/ser2sock).');
+        createFormTooltip('#device_address', 'Hostname or IP on which ser2sock should listen (usually localhost or 0.0.0.0).');
+        createFormTooltip('#device_port', 'Port that ser2sock will listen on for connections (avoid common ports like 80, 443, 5000).');
+        createFormTooltip('#ssl', 'Check to enable SSL encryption for the ser2sock service.');
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+<div id="setup" class="container">
+    <h3>Local Service (ser2sock) Settings</h3>
+    <div>
+        <p>
+            Configure the AlarmDecoder sharing service (ser2sock). These settings determine how the AlarmDecoder will be accessible on your network.
+        </p>
+        <p>
+            If you enable SSL encryption for ser2sock, the system will generate the necessary certificates automatically. Otherwise, uncheck the encryption option.
+        </p>
+    </div>
+    <br>
+    {{ render_form(url_for('setup.sslserver'), form) }}
+</div>
+{% endblock %}
+
+{% block js_btm %}
+{% endblock %}

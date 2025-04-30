@@ -89,11 +89,14 @@
                     title: "Clear Event Log",
                     confirm: function(button) {
                         $.ajax({
-                            url: "/log/delete",
-                        }).done( function( data ) {
+                        url: "/log/delete",
+                        type: "POST"
+                    }).done(function(response) {
+                        if(response.success) {
                             oTable.fnClearTable();
-                        });
-                    },
+                        }
+                    });
+                },
                     cancel: function(button) {
                     },
                     confirmButton: "Yes",

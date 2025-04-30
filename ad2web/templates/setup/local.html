@@ -8,25 +8,25 @@
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function() {
-        createFormTooltip('#device_path', 'The serial port location of your AlarmDecoder device.');
-        createFormTooltip('#baudrate', 'The data baudrate to communicate with your device.  Default 115200.');
+        // Tooltips for form fields
+        createFormTooltip('#device_path', 'Filesystem path or port of your AlarmDecoder device (e.g., /dev/ttyUSB0 on Linux, COM3: on Windows).');
+        createFormTooltip('#baudrate', 'Baud rate for device communication (e.g., 115200 for AD2USB/AD2PI, or 19200 for AD2SERIAL).');
     });
 </script>
 {% endblock %}
 
 {% block body %}
 <div id="setup" class="container">
-	<h3>Local Device Settings</h3>
-	<div>
-		<p>
-			Now we need to know exactly where your device exists at.  Based on your answer to previous questions we've provided the default baudrate for your device as well as an example path to it.
-		</p>
-
-		<p>
-			Please note that the path may vary on all but the AD2PI, which is fixed.  If you're running Linux or OSX your path likely is something similar to '/dev/ttyUSB0', and if it's Windows it will be something similar to 'COM3:'. (The trailing colon is required.)
-		</p>
-	</div>
-	<br>
+    <h3>Local Device Settings</h3>
+    <div>
+        <p>
+            Now specify where your AlarmDecoder device is connected. We have pre-populated a default baud rate and example path based on your earlier selections.
+        </p>
+        <p>
+            Note: The actual device path may vary. For an AD2PI, the path is fixed (e.g., <code>/dev/serial0</code>). On Linux/OSX, a USB device may appear as a path like <code>/dev/ttyUSB0</code>, and on Windows it will be a COM port (e.g., <code>COM3:</code> – include the colon).
+        </p>
+    </div>
+    <br>
     {{ render_form(url_for('setup.local'), form) }}
 </div>
 {% endblock %}

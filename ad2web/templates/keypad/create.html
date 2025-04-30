@@ -1,15 +1,14 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
-{% block css %}
-{% endblock %}
+{% block css %}{% endblock %}
 
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function() {
-        createFormTooltip('#text', 'The text on the button.');
-        createFormTooltip('#code', 'The alarm keys to send on press of button.');
+        // Provide tooltips for form fields
+        createFormTooltip('#text', 'The text to display on the custom button.');
+        createFormTooltip('#code', 'The alarm keypad keys or sequence to send when this button is pressed.');
     });
 </script>
 {% endblock %}
@@ -20,5 +19,4 @@
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

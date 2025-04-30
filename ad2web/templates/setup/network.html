@@ -27,6 +27,42 @@
     {{ render_form(url_for('setup.network'), form) }}
 </div>
 {% endblock %}
+                                         {% from "macros/_form.html" import render_form %}
+
+{% extends 'setup/layout.html' %}
+
+{% block css %}
+{% endblock %}
+
+{% block pagejs %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Tooltips for form fields
+        createFormTooltip('#device_address', 'Hostname or IP address of the AlarmDecoder (ser2sock host).');
+        createFormTooltip('#device_port', 'Port number on which the AlarmDecoder (ser2sock) is listening.');
+        createFormTooltip('#ssl', 'Check this if the ser2sock service requires an encrypted (SSL/TLS) connection.');
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+<div id="setup" class="container">
+    <h3>Network Device Settings</h3>
+    <div>
+        <p>
+            Configure the connection to your network-exposed AlarmDecoder device. Enter the hostname or IP address and port of the `ser2sock` service (or other IP-to-Serial interface).
+        </p>
+        <p>
+            If the service is running in encrypted mode, enable the SSL option to allow uploading the necessary certificates in the next step.
+        </p>
+    </div>
+    <br>
+    {{ render_form(url_for('setup.network'), form) }}
+</div>
+{% endblock %}
+
+{% block js_btm %}
+{% endblock %}
 
 {% block js_btm %}
 {% endblock %}

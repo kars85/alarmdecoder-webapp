@@ -1,15 +1,12 @@
-{% from "macros/_form.html" import render_form %}
-
-
 {% extends 'layouts/base.html' %}
+{% from "macros/_form.html" import render_form %}
 
 {% set page_title = 'AlarmDecoder Updater' %}
 
-{% block css %}
-{% endblock %}
+{% block css %}{% endblock %}
 
 {% block pagejs %}
-{% include 'js/updater/index.js' %}
+    {% include 'js/updater/index.js' %}
 {% endblock %}
 
 {% block body %}
@@ -18,28 +15,59 @@
     {% if updates|length == 0 %}
         <p>No updates available!</p>
     {% else %}
+        <!-- Status and warning section -->
         <div style="float: left;">
-            <span id="app_running"><span style="color:green">&#10004;</span> Application is running.</span>
+            <span id="app_running">
+                <span style="color: green;">&#10004;</span> Application is running.
+            </span>
         </div>
         <div style="float: right;">
-            <strong><font color="red">Warning!</font></strong>&nbsp; Be sure to <a href="{{ url_for('settings.export') }}">Export</a> your settings first as a backup if this fails. If this fails it may be necessary to install a fresh image.<br/>Update both AlarmDecoderLibrary and AlarmDecoderWebapp but do not reboot until they are both updated.<br/>
+            <strong class="text-danger">Warning!</strong>
+            Be sure to <a href="{{ url_for('settings.export') }}">Export</a> your settings first as a backup.
+            If the update fails you may need to install a fresh image.<br/>
+            Update both **AlarmDecoderLibrary** and **AlarmDecoderWebapp** but do **not** reboot until they are both updated.<br/>
             <a class="btn btn-default" href="{{ url_for('update.check_for_updates') }}">Check for updates</a>
         </div>
-
         <div style="padding-top: 30px; clear: both;">
-            <table style="text-align: left; width: 80%; margin: 0 auto;" class="table-bordered table-striped">
-                <tr><th>Component</th><th>Branch</th><th>Changes</th><th>Status</th><th></th></tr>
-                {% for component, (needs_update, branch, revision, new_revision, status, project_url) in updates.iteritems() %}
+            <!-- Updates table -->
+            <table class="table table-bordered table-striped" style="width: 80%; margin: 0 auto; text-align: left;">
                 <tr>
+                    <th>Component</th>
+                    <th>Branch</th>
+                    <th>Changes</th>
+                    <th>Status</th>
+                    <th><!-- Actions --></th>
+                </tr>
+                {% for component, (needs_update, branch, revision, new_revision, status, project_url) in updates.items() %}
+                <tr>
+                    <!-- Component name -->
                     <td>{{ component }}</td>
-                    <td><a href="{{ project_url|escape }}/tree/{{ branch|urlencode }}">{{ branch }}</a></td>
-                    <td>{% if needs_update %}<a href="{{ project_url|escape }}/compare/{{ revision|truncate(7, True, '') }}...{{ new_revision|truncate(7, True, '') }}">{{ revision|truncate(7, True, '') }}...{{ new_revision|truncate(7, True, '') }}{% endif %}</a></td>
+                    <!-- Branch link -->
+                    <td>
+                        <a href="{{ project_url }}/tree/{{ branch|urlencode }}">
+                            {{ branch }}
+                        </a>
+                    </td>
+                    <!-- Changes link (if update available) -->
+                    <td>
+                        {% if needs_update %}
+                            <a href="{{ project_url }}/compare/{{ revision|truncate(7, True, '') }}...{{ new_revision|truncate(7, True, '') }}">
+                                {{ revision|truncate(7, True, '') }}...{{ new_revision|truncate(7, True, '') }}
+                            </a>
+                        {% endif %}
+                    </td>
+                    <!-- Status text -->
                     <td>{{ status }}</td>
+                    <!-- Action buttons & status icons -->
                     <td>
                         <span id="{{ component }}-status"></span>
-                        <input class="btn btn-sm" name="{{ component }}-update-submit" id="{{ component }}-update-submit" value="Update" style="display:none;">
-                        <input class="btn btn-sm" name="{{ component }}-restart-submit" id="{{ component }}-restart-submit" value="Restart" style="display:none;">
-                        <img id="{{ component }}-update-anim" src="{{ url_for('static', filename='img/spinner.gif') }}" style="display: none;">
+                        <input type="button" class="btn btn-sm"
+                               id="{{ component }}-update-submit" value="Update" style="display: none;">
+                        <input type="button" class="btn btn-sm"
+                               id="{{ component }}-restart-submit" value="Restart" style="display: none;">
+                        <img id="{{ component }}-update-anim"
+                             src="{{ url_for('static', filename='img/spinner.gif') }}"
+                             alt="Loading..." style="display: none;">
                     </td>
                 </tr>
                 {% endfor %}
@@ -49,5 +77,4 @@
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

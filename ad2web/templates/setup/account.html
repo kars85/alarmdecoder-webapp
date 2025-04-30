@@ -12,13 +12,14 @@
 
 {% block body %}
 <div id="setup" class="container">
-	<h3>Create Account</h3>
-	<div>
-		<p>
-            Please take the time to create your administrator account for use in the AlarmDecoder web application.
-		</p>
-	</div>
-	<br>
+    <h3>Create Account</h3>
+    <div>
+        <p>
+            Please create an administrator account for the AlarmDecoder web application.
+            This account will be used to log in and manage settings.
+        </p>
+    </div>
+    <br>
     {{ render_form(url_for('setup.account'), form) }}
 </div>
 {% endblock %}

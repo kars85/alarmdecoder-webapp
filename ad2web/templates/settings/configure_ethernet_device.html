@@ -1,27 +1,25 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
-{% block css %}
-{% endblock %}
+{% block css %}{% endblock %}
 
 {% block pagejs %}
 <script type="text/javascript">
     $(document).ready(function(){
         createFormTooltip('#connection_type-0', 'Static or DHCP address type.');
         createFormTooltip('#connection_type-1', 'Static or DHCP address type.');
-        createFormTooltip('#ip_address', 'IP Address, version 4.\n\n  Example:  127.0.0.1');
-        createFormTooltip('#gateway', 'Internet Gateway Address.\n\n Example: 192.168.0.1');
-        createFormTooltip('#netmask', 'Subnet Mask.\n\n Example: 255.255.255.0');
+        createFormTooltip('#ip_address', 'IP Address, e.g., 192.168.0.100');
+        createFormTooltip('#gateway', 'Default Gateway IP, e.g., 192.168.0.1');
+        createFormTooltip('#netmask', 'Subnet Mask, e.g., 255.255.255.0');
     });
 </script>
 {% endblock %}
+
 {% block body %}
 <div class="settings_wrapper">
-    <h2>Settings for: {{device}}</h2>
+    <h2>Settings for: {{ device }}</h2>
     {{ render_form(url_for('settings.configure_ethernet_device', device=device), form) }}
 </div>
 {% endblock %}
 
-{% block js_btm %}
-{% endblock %}
+{% block js_btm %}{% endblock %}

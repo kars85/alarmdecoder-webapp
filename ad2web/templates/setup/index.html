@@ -1,27 +1,49 @@
-{% from "macros/_form.html" import render_form %}
+{% extends "layouts/base.html" %}
 
-{% extends 'setup/layout.html' %}
+{#
+  Setup module layout template
+  Provides consistent styling, flash message display, and container for wizard steps.
+#}
+
+{% set page_header = page_header or 'AlarmDecoder Device Setup' %}
+{% set page_title = page_title or page_header %}
 
 {% block css %}
+  {# Page-specific CSS can be added here #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
 {% endblock %}
 
 {% block pagejs %}
-<script type="text/javascript">
-</script>
+  {# Shared setup JavaScript (common behaviors) #}
+  <script src="{{ url_for('static', filename='js/setup/common.js') }}"></script>
 {% endblock %}
 
 {% block body %}
-<div id="setup" class="container">
-    <h3>Setup</h3>
-    <div>
-        <p>
-        Welcome to your new AlarmDecoder device!  This setup process will guide you through configuring and accessing your device through the web interface.
-        </p>
-    </div>
+<div class="container setup-wizard-container my-4">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <h2 class="mb-4">{{ page_header }}</h2>
 
-    <a class="btn btn-primary" href="{{ url_for('setup.type') }}">Start!</a>
+      {# Flash messages #}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category in ['error','danger'] else category }}" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {# Main setup content from individual steps #}
+      {% block setup_content %}{% endblock %}
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block js_btm %}
+  {# Page-specific JS can be added here #}
 {% endblock %}

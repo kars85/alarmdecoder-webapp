@@ -11,39 +11,39 @@
 
 {% block body %}
 <div id="setup" class="container">
-	<h3>Device Testing</h3>
-	
-	<div>
-		<table id="test_results">
-			<tr id='test-open'>
-				<td class='test-description'>Opening device</td>
-				<td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
-				<td class='details'></td>
-			</tr>
-			<tr id='test-config'>
-				<td class='test-description'>Saving device configuration</td>
-				<td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
-				<td class='details'></td>
-			</tr>
-			<tr id='test-send'>
-				<td class='test-description'>Keypad communication (Send)</td>
-				<td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
-				<td class='details'></td>
-			</tr>
-			<tr id='test-recv'>
-				<td class='test-description'>Keypad communication (Receive)</td>
-				<td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
-				<td class='details'></td>
-			</tr>
-		</table>
-	</div>
-
-	<div>
-		<p>
-
-		</p>
-	</div>
-	<br>
+    <h3>Device Testing</h3>
+    <div>
+        <p>
+            Click the **Run Tests** button below to verify communication with your AlarmDecoder. The results of each test (open device, configuration, send and receive data) will be displayed in the table. After all tests complete (and pass), click **Next** to continue.
+        </p>
+        <button id="run-tests" type="button" class="btn btn-info">Run Tests</button>
+    </div>
+    <br>
+    <div>
+        <table id="test_results">
+            <tr id="test-open">
+                <td class="test-description">Opening device</td>
+                <td class="test-results"><img src="{{ url_for('static', filename='img/spinner.gif') }}" alt="in progress"></td>
+                <td class="details"></td>
+            </tr>
+            <tr id="test-config">
+                <td class="test-description">Saving device configuration</td>
+                <td class="test-results"><img src="{{ url_for('static', filename='img/spinner.gif') }}" alt="in progress"></td>
+                <td class="details"></td>
+            </tr>
+            <tr id="test-send">
+                <td class="test-description">Keypad communication (Send)</td>
+                <td class="test-results"><img src="{{ url_for('static', filename='img/spinner.gif') }}" alt="in progress"></td>
+                <td class="details"></td>
+            </tr>
+            <tr id="test-recv">
+                <td class="test-description">Keypad communication (Receive)</td>
+                <td class="test-results"><img src="{{ url_for('static', filename='img/spinner.gif') }}" alt="in progress"></td>
+                <td class="details"></td>
+            </tr>
+        </table>
+    </div>
+    <br>
     {{ render_form(url_for('setup.test'), form) }}
 </div>
 {% endblock %}

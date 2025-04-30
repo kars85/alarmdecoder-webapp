@@ -1,5 +1,4 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
 {% block css %}
@@ -25,18 +24,28 @@
             </thead>
             <tbody>
                 {% for button in buttons %}
-                    <tr>
-                        <td><a href="{{ url_for('keypad.edit_button', id=button.button_id) }}">{{ button.button_id }}</a></td>
-                        <td>{{ button.label }}</td>
-                        <td>{{ button.code }}</td>
-                        <td><a href="{{ url_for('keypad.remove_button', id=button.button_id) }}"><img style="text-align: center; float: right; margin-right: 15px;" src="{{ url_for('static', filename='img/red_x.png') }}"/></a></td>
-                    </tr>
+                <tr data-id="{{ button.button_id }}">
+                    <td>{{ button.button_id }}</td>
+                    <td>{{ button.label }}</td>
+                    <td>{{ button.code }}</td>
+                    <td>
+                        <a href="{{ url_for('keypad.edit_button', button_id=button.button_id) }}" class="edit-btn" title="Edit">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                        </a>
+                        &nbsp;
+                        <a href="{{ url_for('keypad.delete_button', button_id=button.button_id) }}" class="delete-btn" title="Delete">
+                            <span class="glyphicon glyphicon-remove text-danger"></span>
+                        </a>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     <br/>
-    <a id="clear" class="btn btn-primary" href="{{ url_for('keypad.create_button') }}">New Button</a>&nbsp;<a class="btn btn-primary" href="{{ url_for('keypad.special_buttons') }}">Special Buttons</a>
+    <a id="clear" class="btn btn-primary" href="{{ url_for('keypad.create_button') }}">New Button</a>
+    &nbsp;
+    <a class="btn btn-primary" href="{{ url_for('keypad.special_buttons') }}">Special Buttons</a>
 </div>
 {% endblock %}
 

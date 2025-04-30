@@ -1,5 +1,4 @@
 {% from "macros/_form.html" import render_form %}
-
 {% extends 'settings/layout.html' %}
 
 {% block css %}
@@ -9,24 +8,25 @@
 {% block pagejs %}
 {% include 'js/settings/git.js' %}
 {% endblock %}
+
 {% block body %}
 <div class="settings_wrapper">
     <h3>Switch Code Branch</h3>
     <br>
     <div>
-        <h4>Current alarmdecoder-webapp origin/branch: {{current_remote_web}}/{{current_branch_web}}</h4>
-        <h4>Current alarmdecoder-api origin/branch: {{current_remote_api}}/{{current_branch_api}}</h4>
+        <h4>Current alarmdecoder-webapp origin/branch: {{ current_remote_web }}/{{ current_branch_web }}</h4>
+        <h4>Current alarmdecoder-api origin/branch: {{ current_remote_api }}/{{ current_branch_api }}</h4>
     </div>
     <div>
         {{ render_form(url_for('settings.switch_branch'), form) }}
     </div>
-    <div style="color: red;">WARNING: This will replace all current code - you must restart after changing.</div>
+    <div style="color: red;">WARNING: This will replace all current code. You must restart the application after changing branches.</div>
     <div style="float: left;">
         <span id="app_running"><span style="color:green">&#10004;</span> Application is running.</span>
     </div>
     <br>
     <div id="restart">
-        <button type="button" name="restartbutton" id="restartbutton" class="btn btn-primary">Restart</button>
+        <button type="button" id="restartbutton" class="btn btn-primary">Restart</button>
     </div>
 </div>
 {% endblock %}

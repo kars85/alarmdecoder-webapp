@@ -13,55 +13,37 @@
 {% block body %}
 <div class="settings_wrapper">
     <div id="import_list">
-        <strong>Modules</strong>&nbsp;Here is a list of system used Python Modules.  If a module appears <font color="green">green</font> it is present.  If it appears <font color="red">red</font> then it is missing.  Missing modules might cause certain features to be unavailable.  We suggest installing all modules listed in the project requirements.txt.  Some modules such as <b>OpenCV</b> require more steps to install.<br/>
-        <button id="test_modules" class="btn btn-primary">Test Modules</button>&nbsp;&nbsp;&nbsp;<span style="display: inline-block;"><input type="checkbox" id="chk_showall" name="chk_showall"/><span style="margin-left: 5px !important; top: -15px !important;"><b>Show All</b></span></span><br/>
+        <strong>Modules</strong> – The following Python modules are required by the system. Modules in <font color="green">green</font> are present; those in <font color="red">red</font> are missing. Missing modules may disable certain features. It is recommended to install all modules listed in requirements.txt.
+        <br/>
+        <button id="test_modules" class="btn btn-primary">Test Modules</button>
+        &nbsp;&nbsp;&nbsp;
+        <span><input type="checkbox" id="chk_showall"/><span style="margin-left: 5px;"><b>Show All</b></span></span>
+        <br/>
         <div id="loading"></div>
-        <div id="import_list_detail" style="overflow-x: hidden; height: 270px !important;">
+        <div id="import_list_detail" style="overflow-x: hidden; height: 270px;">
         </div>
     </div>
     <br/>
-    {% if settings['mode'] == 'ADEMCO' %}
+    {% if settings['mode'] == 'ADEMCO/Honeywell' %}
     <div id="queryEventLog">
         <button type="button" class="btn btn-primary" id="startEventQuery">Panel Event Log</button>
     </div>
     {% endif %}
     <div id="device_settings">
         <h3>AlarmDecoder device settings:</h3>
-        <table id="decoder_settings" class="table table-striped table-bordered table-condensed table-responsive" cellspacing="0">
+        <table id="decoder_settings" class="table table-striped table-bordered table-condensed table-responsive">
             <tbody>
-                <tr>
-                    <td width="20%">Address</td><td>{{settings['address']}}</td>
-                </tr>
-                <tr>
-                    <td>Configbits</td><td>{{settings['configbits']}}</td>
-                </tr>
-                <tr>
-                    <td>Address Mask</td><td>{{settings['address_mask']}}</td>
-                </tr>
-                <tr>
-                    <td>Zone Exander Emulation</td><td>{% for zexp in settings['emulate_zone'] %} {{zexp}} {% endfor %}</td>
-                </tr>
-                <tr>
-                    <td>Relay Emulation</td><td>{% for relay in settings['emulate_relay'] %} {{relay}} {% endfor %}</td>
-                </tr>
-                <tr>
-                    <td>LRR Emulation</td><td>{{settings['emulate_lrr']}}</td>
-                </tr>
-                <tr>
-                    <td>Deduplicate</td><td>{{settings['deduplicate']}}</td>
-                </tr>
-                <tr>
-                    <td>Panel Type</td><td>{{settings['mode']}}</td>
-                </tr>
-                <tr>
-                    <td>Firmware version</td><td>{{settings['firmware']}}</td>
-                </tr>
-                <tr>
-                    <td>Serial Number</td><td>{{settings['serial']}}</td>
-                </tr>
-                <tr>
-                    <td>Device Flags</td><td>{{settings['flags']}}</td>
-                </tr>
+                <tr><td width="20%">Address</td><td>{{ settings['address'] }}</td></tr>
+                <tr><td>Configbits</td><td>{{ settings['configbits'] }}</td></tr>
+                <tr><td>Address Mask</td><td>{{ settings['address_mask'] }}</td></tr>
+                <tr><td>Zone Expander Emulation</td><td>{{ settings['emulate_zone'] }}</td></tr>
+                <tr><td>Relay Emulation</td><td>{{ settings['emulate_relay'] }}</td></tr>
+                <tr><td>LRR Emulation</td><td>{{ settings['emulate_lrr'] }}</td></tr>
+                <tr><td>Deduplicate</td><td>{{ settings['deduplicate'] }}</td></tr>
+                <tr><td>Panel Type</td><td>{{ settings['mode'] }}</td></tr>
+                <tr><td>Firmware version</td><td>{{ settings['firmware'] }}</td></tr>
+                <tr><td>Serial Number</td><td>{{ settings['serial'] }}</td></tr>
+                <tr><td>Device Flags</td><td>{{ settings['flags'] }}</td></tr>
             </tbody>
         </table>
     </div>
@@ -84,25 +66,11 @@
                     <td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
                     <td class='details'></td>
                 </tr>
-                <tr id='test-recv'>
-                    <td class='test-description'>Keypad communication (Receive)</td>
-                    <td class='test-results'><img src="{{ url_for('static', filename='img/spinner.gif') }}"></td>
-                    <td class='details'></td>
-                </tr>
+                <!-- Additional test result rows would go here -->
             </table>
         </div>
     </div>
 </div>
-<div id="dialog" style="Display: none;" title="Panel Event Log">
-    <div id="numDevices" style="font-weight: Bold;"></div>
-    <div id="logEntries">
-        <textarea id="textLogEntries" style="width: 450; height: 350;"></textarea><br/><button name="btnCopy" id="btnCopy" class="btn btn-primary">Copy to Clipboard</button>
-    </div>
-</div>
 {% endblock %}
 
-{% block js_btm %}
-<script src="{{ url_for('static', filename='js/vendor/jquery-ui-1.10.4.custom.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/spin.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.spin.js') }}"></script>
-{% endblock %}
+{% block js_btm %}{% endblock %}

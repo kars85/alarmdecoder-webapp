@@ -1,0 +1,26 @@
+{% from "macros/_form.html" import render_form %}
+
+{% extends 'setup/layout.html' %}
+
+{% block css %}
+{% endblock %}
+
+{% block pagejs %}
+{% include 'js/setup/email.js' %}
+{% endblock %}
+
+{% block body %}
+<div id="setup" class="container">
+    <h3>Email Settings</h3>
+    <div>
+        <p>
+            Configure the email server settings for this web application. These settings will be used for sending notification emails (e.g., alerts or password resets). If your SMTP server requires authentication, check the option and provide the username and password.
+        </p>
+    </div>
+    <br>
+    {{ render_form(url_for('setup.email'), form) }}
+</div>
+{% endblock %}
+
+{% block js_btm %}
+{% endblock %}
