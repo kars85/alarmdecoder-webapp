@@ -1,40 +1,24 @@
-import sys, os, pwd
+import os
+import sys
 import threading
 
-project = "ad2web"
-
-# Use instance folder, instead of env variables.
-# specify dev/production config
-#os.environ['%s_APP_CONFIG' % project.upper()] = ''
-# http://code.google.com/p/modwsgi/wiki/ApplicationIssues#User_HOME_Environment_Variable
-#os.environ['HOME'] = pwd.getpwuid(os.getuid()).pw_dir
-
-BASE_DIR = os.path.join(os.path.dirname(__file__))
-# activate virtualenv
-# activate_this = os.path.join(BASE_DIR, "env/bin/activate_this.py")
-# execfile(activate_this, dict(__file__=activate_this))
-
+# Ensure the application path is in the Python path for uninstalled use
+BASE_DIR = os.path.dirname(__file__)
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-# Add /opt/alarmdecoder to the module search path.
-# so we can maintain using git and the web interface
-# this folder needs to be writable by the app.
-sys.path.insert(0,"/opt/alarmdecoder")
-
-# give wsgi the "application"
+# If the AlarmDecoder package is installed in /opt, include it (for device communication libs, etc.)
+ALARMDECODER_DIR = os.path.join(os.sep, "opt", "alarmdecoder")
+if os.path.isdir(ALARMDECODER_DIR) and ALARMDECODER_DIR not in sys.path:
+    sys.path.insert(0, ALARMDECODER_DIR)
 
 from ad2web import create_app, init_app
 
-class SocketIOThread(threading.Thread):
-	def __init__(self, appsocket):
-		threading.Thread.__init__(self)
-		self._appsocket = appsocket
-
-	def run(self):
-		self._appsocket.serve_forever()
-
+# Create the Flask application and Socket.IO server
 application, appsocket = create_app()
+# Perform post-creation initialization (e.g., start decoder threads)
 init_app(application, appsocket)
-socket_thread = SocketIOThread(appsocket)
+
+# Launch the Socket.IO server in a background thread (non-blocking)
+socket_thread = threading.Thread(target=appsocket.serve_forever, daemon=True)
 socket_thread.start()

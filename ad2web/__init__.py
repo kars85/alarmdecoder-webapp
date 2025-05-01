@@ -37,3 +37,7 @@ def create_app():
     start_discovery()
 
     return app
+
+
+def init_app():
+    return None
