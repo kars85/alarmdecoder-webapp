@@ -1,8 +1,8 @@
 from sqlalchemy.exc import IntegrityError
 
-from ..extensions import db
-from .models import User, FailedLogin
-from .constants import ACTIVE, INACTIVE
+from ad2web.extensions import db
+from ad2web.user.models import User, FailedLogin
+from ad2web.user.constants import ACTIVE, INACTIVE
 
 class DuplicateUserError(Exception):
     """Exception raised when attempting to create/update a user with duplicate data."""

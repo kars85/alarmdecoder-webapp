@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm as Form
 from wtforms import StringField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Length, Optional
+from wtforms.validators import InputRequired, Length, Optional
 from ad2web.widgets import ButtonField
 from ad2web.keypad.constants import (
     FIRE, POLICE, MEDICAL, SPECIAL_4, SPECIAL_CUSTOM,
@@ -9,8 +9,8 @@ from ad2web.keypad.constants import (
 from alarmdecoder import AlarmDecoder
 
 class KeypadButtonForm(Form):
-    text = StringField('Label', validators=[DataRequired(), Length(max=32)])
-    code = StringField('Code', validators=[DataRequired(), Length(max=32)])
+    text = StringField('Label', validators=[InputRequired(), Length(max=32)])
+    code = StringField('Code', validators=[InputRequired(), Length(max=32)])
     submit = SubmitField('Save')
     cancel = ButtonField('Cancel', onclick="location.href='/keypad/buttons'")
 

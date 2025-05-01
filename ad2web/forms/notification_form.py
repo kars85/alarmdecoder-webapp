@@ -1,7 +1,7 @@
 import re, ast, json
 from flask_wtf import FlaskForm as Form
-from wtforms import ValidationError, TextField, PasswordField, SubmitField, TextAreaField, IntegerField, RadioField, BooleanField, SelectField, SelectMultipleField, FormField, FieldList
-from wtforms.validators import Required, InputRequired, Optional, Length, NumberRange
+from wtforms import ValidationError, StringField, HiddenField, PasswordField, SubmitField, TextAreaField, IntegerField, RadioField, BooleanField, SelectField, SelectMultipleField, FormField, FieldList
+from wtforms.validators import DataRequired, InputRequired, Optional, Length, NumberRange
 from ad2web.notifications.constants import (NOTIFICATIONS, SUBSCRIPTIONS, PUSHOVER_PRIORITIES, PROWL_PRIORITIES, GROWL_PRIORITIES, GROWL_TITLE,
                                             URLENCODE, JSON, XML, CUSTOM_METHOD_POST, CUSTOM_METHOD_GET_TYPE, LOWEST, LOW, NORMAL, HIGH, EMERGENCY)
 from ad2web.notifications.models import NotificationSetting
@@ -22,8 +22,8 @@ class CreateNotificationForm(Form):
 
 class EditNotificationMessageForm(Form):
     """Admin form to edit a notification message template."""
-    id = TextField()  # HiddenField could be used, using TextField for simplicity
-    text = TextAreaField('Message Text', [Required(), Length(max=255)])
+    id = StringField()  # HiddenField could be used, using StringField for simplicity
+    text = TextAreaField('Message Text', [DataRequired(), Length(max=255)])
     submit = SubmitField('Save')
     cancel = ButtonField('Cancel', onclick="location.href='/settings/notifications/messages'")
 
@@ -45,8 +45,8 @@ class TimeValidator:
 
 class TimeSettingsInternalForm(Form):
     """Internal sub-form for time restriction and delay settings."""
-    starttime = TextField('Start Time', [InputRequired(), Length(max=8), TimeValidator()], default='00:00:00', description='Start time for this event notification (24hr format)')
-    endtime   = TextField('End Time', [InputRequired(), Length(max=8), TimeValidator()], default='23:59:59', description='End time for this event notification (24hr format)')
+    starttime = StringField('Start Time', [InputRequired(), Length(max=8), TimeValidator()], default='00:00:00', description='Start time for this event notification (24hr format)')
+    endtime   = StringField('End Time', [InputRequired(), Length(max=8), TimeValidator()], default='23:59:59', description='End time for this event notification (24hr format)')
     delaytime = IntegerField('Zone Tracker Notification Delay', [InputRequired(), NumberRange(min=0)], default=0, description='Time in minutes to delay sending Zone Tracker notification')
     suppress  = BooleanField('Suppress Zone Restore?', [Optional()], description='Suppress notification if zone restores before delay period')
     def __init__(self, *args, **kwargs):
@@ -56,7 +56,7 @@ class TimeSettingsInternalForm(Form):
 class EditNotificationForm(Form):
     """Base form for editing/creating notifications of specific types."""
     type = HiddenField()
-    description = TextField('Description', [Required(), Length(max=255)], description='Brief description of this notification')
+    description = StringField('Description', [DataRequired(), Length(max=255)], description='Brief description of this notification')
     suppress_timestamp = BooleanField('Suppress Timestamp?', [Optional()], description='Remove timestamp from message body and subject')
     time_field = FormField(TimeSettingsInternalForm)
     subscriptions = MultiCheckboxField('Notification Events', choices=[(str(k), v) for k, v in SUBSCRIPTIONS.items()])
@@ -103,8 +103,8 @@ class EditNotificationForm(Form):
 
 class CustomValueForm(Form):
     """Internal form for dynamic key-value fields (used in custom notifications)."""
-    custom_key   = TextField(label=None)
-    custom_value = TextField(label=None)
+    custom_key   = StringField(label=None)
+    custom_value = StringField(label=None)
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
@@ -113,15 +113,15 @@ class CustomValueForm(Form):
 
 # 1. Email Notification
 class EmailNotificationInternalForm(Form):
-    source               = TextField('Source Address (From)', [Required(), Length(max=255)], default='youremail@example.com', description='Emails will originate from this address')
-    destination          = TextField('Destination Address (To)', [Required(), Length(max=255)], description='Emails will be sent to this address')
-    subject              = TextField('Email Subject', [Required(), Length(max=255)], default='AlarmDecoder: Alarm Event', description='Subject line for the email notification')
-    server               = TextField('SMTP Server', [Required(), Length(max=255)], default='localhost', description='SMTP server address')
-    port                 = IntegerField('Server Port', [Required(), NumberRange(min=1, max=65535)], default=25, description='SMTP server port')
+    source               = StringField('Source Address (From)', [DataRequired(), Length(max=255)], default='youremail@example.com', description='Emails will originate from this address')
+    destination          = StringField('Destination Address (To)', [DataRequired(), Length(max=255)], description='Emails will be sent to this address')
+    subject              = StringField('Email Subject', [DataRequired(), Length(max=255)], default='AlarmDecoder: Alarm Event', description='Subject line for the email notification')
+    server               = StringField('SMTP Server', [DataRequired(), Length(max=255)], default='localhost', description='SMTP server address')
+    port                 = IntegerField('Server Port', [DataRequired(), NumberRange(min=1, max=65535)], default=25, description='SMTP server port')
     tls                  = BooleanField('Use TLS?', default=False)
     ssl                  = BooleanField('Use SSL?', default=False)
-    authentication_required = BooleanField('Require Authentication?', default=False)
-    username             = TextField('Username', [Optional(), Length(max=255)])
+    authentication_DataRequired = BooleanField('Require Authentication?', default=False)
+    username             = StringField('Username', [Optional(), Length(max=255)])
     password             = PasswordField('Password', [Optional(), Length(max=255)])
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
@@ -141,7 +141,7 @@ class EmailNotificationForm(EditNotificationForm):
         settings['port'] = self.populate_setting('port', self.form_field.port.data, id)
         settings['tls'] = self.populate_setting('tls', self.form_field.tls.data, id)
         settings['ssl'] = self.populate_setting('ssl', self.form_field.ssl.data, id)
-        settings['authentication_required'] = self.populate_setting('authentication_required', self.form_field.authentication_required.data, id)
+        settings['authentication_DataRequired'] = self.populate_setting('authentication_DataRequired', self.form_field.authentication_DataRequired.data, id)
         settings['username'] = self.populate_setting('username', self.form_field.username.data, id)
         settings['password'] = self.populate_setting('password', self.form_field.password.data, id)
     def populate_from_settings(self, id):
@@ -153,17 +153,17 @@ class EmailNotificationForm(EditNotificationForm):
         self.form_field.port.data = self.populate_from_setting(id, 'port')
         self.form_field.tls.data = self.populate_from_setting(id, 'tls', default=False)
         self.form_field.ssl.data = self.populate_from_setting(id, 'ssl', default=False)
-        self.form_field.authentication_required.data = self.populate_from_setting(id, 'authentication_required', default=False)
+        self.form_field.authentication_DataRequired.data = self.populate_from_setting(id, 'authentication_DataRequired', default=False)
         # Password: do not mask the value on form repopulation
         self.form_field.password.widget.hide_value = False
         self.form_field.password.data = self.populate_from_setting(id, 'password')
 
 # 2. Pushover Notification
 class PushoverNotificationInternalForm(Form):
-    token    = TextField('API Token', [Required(), Length(max=30)], description='Your Pushover Application API Token')
-    user_key = TextField('User/Group Key', [Required(), Length(max=30)], description='Your Pushover user or group key')
+    token    = StringField('API Token', [DataRequired(), Length(max=30)], description='Your Pushover Application API Token')
+    user_key = StringField('User/Group Key', [DataRequired(), Length(max=30)], description='Your Pushover user or group key')
     priority = SelectField('Message Priority', choices=[PUSHOVER_PRIORITIES[LOWEST], PUSHOVER_PRIORITIES[LOW], PUSHOVER_PRIORITIES[NORMAL], PUSHOVER_PRIORITIES[HIGH], PUSHOVER_PRIORITIES[EMERGENCY]], default=PUSHOVER_PRIORITIES[LOW], description='Pushover message priority', coerce=int)
-    title    = TextField('Message Title', [Length(max=255)], description='Title for Pushover notifications')
+    title    = StringField('Message Title', [Length(max=255)], description='Title for Pushover notifications')
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
@@ -188,10 +188,10 @@ class PushoverNotificationForm(EditNotificationForm):
 
 # 3. Twilio SMS/Call Notification
 class TwilioNotificationInternalForm(Form):
-    account_sid = TextField('Account SID', [Required(), Length(max=50)], description='Your Twilio Account SID')
-    auth_token  = TextField('Auth Token', [Required(), Length(max=50)], description='Your Twilio Auth Token')
-    number_to   = TextField('To Number', [Required(), Length(max=15)], description='Number to send SMS/Call to')
-    number_from = TextField('From Number', [Required(), Length(max=15)], description='Your Twilio phone number (From)')
+    account_sid = StringField('Account SID', [DataRequired(), Length(max=50)], description='Your Twilio Account SID')
+    auth_token  = StringField('Auth Token', [DataRequired(), Length(max=50)], description='Your Twilio Auth Token')
+    number_to   = StringField('To Number', [DataRequired(), Length(max=15)], description='Number to send SMS/Call to')
+    number_from = StringField('From Number', [DataRequired(), Length(max=15)], description='Your Twilio phone number (From)')
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
@@ -216,11 +216,11 @@ class TwilioNotificationForm(EditNotificationForm):
 
 # 4. TwiML (Twilio with Twimlet URL) Notification
 class TwiMLNotificationInternalForm(Form):
-    account_sid = TextField('Account SID', [Required(), Length(max=50)], description='Your Twilio Account SID')
-    auth_token  = TextField('Auth Token', [Required(), Length(max=50)], description='Your Twilio Auth Token')
-    number_to   = TextField('To Number', [Required(), Length(max=15)], description='Number to send call to')
-    number_from = TextField('From Number', [Required(), Length(max=15)], description='Your Twilio phone number')
-    twimlet_url = TextField('Twimlet URL', [Required(), Length(max=255)], default="http://twimlets.com/message", description='URL of the Twimlet to use (e.g., http://twimlets.com/message)')
+    account_sid = StringField('Account SID', [DataRequired(), Length(max=50)], description='Your Twilio Account SID')
+    auth_token  = StringField('Auth Token', [DataRequired(), Length(max=50)], description='Your Twilio Auth Token')
+    number_to   = StringField('To Number', [DataRequired(), Length(max=15)], description='Number to send call to')
+    number_from = StringField('From Number', [DataRequired(), Length(max=15)], description='Your Twilio phone number')
+    twimlet_url = StringField('Twimlet URL', [DataRequired(), Length(max=255)], default="http://twimlets.com/message", description='URL of the Twimlet to use (e.g., http://twimlets.com/message)')
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
@@ -247,8 +247,8 @@ class TwiMLNotificationForm(EditNotificationForm):
 
 # 5. Prowl Notification
 class ProwlNotificationInternalForm(Form):
-    prowl_api_key  = TextField('API Key', [Required(), Length(max=50)], description='Your Prowl API Key')
-    prowl_app_name = TextField('Application Name', [Required(), Length(max=256)], default='AlarmDecoder', description='Application name to report in notifications')
+    prowl_api_key  = StringField('API Key', [DataRequired(), Length(max=50)], description='Your Prowl API Key')
+    prowl_app_name = StringField('Application Name', [DataRequired(), Length(max=256)], default='AlarmDecoder', description='Application name to report in notifications')
     prowl_priority = SelectField('Message Priority', choices=[PROWL_PRIORITIES[LOWEST], PROWL_PRIORITIES[LOW], PROWL_PRIORITIES[NORMAL], PROWL_PRIORITIES[HIGH], PROWL_PRIORITIES[EMERGENCY]], default=PROWL_PRIORITIES[LOW], description='Prowl message priority', coerce=int)
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
@@ -272,10 +272,10 @@ class ProwlNotificationForm(EditNotificationForm):
 
 # 6. Growl Notification
 class GrowlNotificationInternalForm(Form):
-    growl_hostname = TextField('Hostname', [Required(), Length(max=255)], description='Growl server hostname/IP')
-    growl_port     = TextField('Port', [Required(), Length(max=10)], default='23053', description='Growl server port')
+    growl_hostname = StringField('Hostname', [DataRequired(), Length(max=255)], description='Growl server hostname/IP')
+    growl_port     = StringField('Port', [DataRequired(), Length(max=10)], default='23053', description='Growl server port')
     growl_password = PasswordField('Password', description='Password for the Growl server (if any)')
-    growl_title    = TextField('Title', [Required(), Length(max=255)], default=GROWL_TITLE, description='Title for Growl notifications')
+    growl_title    = StringField('Title', [DataRequired(), Length(max=255)], default=GROWL_TITLE, description='Title for Growl notifications')
     growl_priority = SelectField('Message Priority', choices=[GROWL_PRIORITIES[LOWEST], GROWL_PRIORITIES[LOW], GROWL_PRIORITIES[NORMAL], GROWL_PRIORITIES[HIGH], GROWL_PRIORITIES[EMERGENCY]], default=GROWL_PRIORITIES[LOW], description='Growl message priority', coerce=int)
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
@@ -303,13 +303,13 @@ class GrowlNotificationForm(EditNotificationForm):
 
 # 7. Custom HTTP/POST Notification
 class CustomPostInternalForm(Form):
-    custom_url    = TextField('Base URL', [Required(), Length(max=255)], description='Base URL of the endpoint (e.g., https://api.example.com)')
-    custom_path   = TextField('Path', [Optional(), Length(max=255)], description='URL path to post to (optional)')
+    custom_url    = StringField('Base URL', [DataRequired(), Length(max=255)], description='Base URL of the endpoint (e.g., https://api.example.com)')
+    custom_path   = StringField('Path', [Optional(), Length(max=255)], description='URL path to post to (optional)')
     is_ssl        = BooleanField('Use SSL?', default=False)
     method        = RadioField('HTTP Method', choices=[(CUSTOM_METHOD_POST, 'POST'), (CUSTOM_METHOD_GET_TYPE, 'GET')], default=CUSTOM_METHOD_POST, coerce=int)
     post_type     = RadioField('Content Type', choices=[(URLENCODE, 'Form URL Encoded'), (JSON, 'JSON'), (XML, 'XML')], default=URLENCODE, coerce=int)
     require_auth  = BooleanField('Use HTTP Basic Auth?', default=False)
-    auth_username = TextField('Auth Username', [Optional(), Length(max=255)])
+    auth_username = StringField('Auth Username', [Optional(), Length(max=255)])
     auth_password = PasswordField('Auth Password', [Optional(), Length(max=255)])
     custom_values = FieldList(FormField(CustomValueForm), validators=[Optional()], label=None)
     add_field     = ButtonField('Add Field', onclick='addField();')
@@ -365,7 +365,7 @@ class CustomPostForm(EditNotificationForm):
 
 # 8. UPNP Push Notification (special case: only one allowed, simplified form)
 class UPNPPushNotificationInternalForm(Form):
-    token = TextField('Token', [Length(max=255)], description='(Not used; leave blank)')
+    token = StringField('Token', [Length(max=255)], description='(Not used; leave blank)')
     def __init__(self, *args, **kwargs):
         kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
@@ -379,7 +379,7 @@ class UPNPPushNotificationForm(Form):
               "</div>")
     type = HiddenField()
     subscriptions = HiddenField()  # will carry the event subscription (probably fixed for UPNP)
-    description = TextField('Description', [Required(), Length(max=255)], description='Brief description of this notification')
+    description = StringField('Description', [DataRequired(), Length(max=255)], description='Brief description of this notification')
     form_field = FormField(UPNPPushNotificationInternalForm)
     submit = SubmitField('Next')
     cancel = ButtonField('Cancel', onclick="location.href='/settings/notifications'")

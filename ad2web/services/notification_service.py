@@ -1,168 +1,177 @@
-from ad2web.extensions import db
-from ad2web.notifications.models import Notification, NotificationSetting, NotificationMessage
-from ad2web import zone_service, user_service  # assume zone_service and user_service are available
+import time
+import threading
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.utils import COMMASPACE, formatdate
+from os.path import basename
 
+from flask import current_app
+
+# Import NotificationSystem and related models from the AlarmDecoder webapp
+from ad2web.notifications.types import NotificationSystem
 
 class NotificationService:
-    """Service layer for notification business logic."""
-
-    def get_notifications(self, user):
-        """Fetch notifications accessible by the given user."""
-        if user.is_admin():
-            notifications = Notification.query.all()
-        else:
-            notifications = Notification.query.filter_by(user_id=user.id).all()
-        return notifications
-
-    def get_notification(self, notif_id):
-        """Fetch a notification by ID, or None if not found."""
-        return Notification.query.filter_by(id=notif_id).first()
-
-    def create_notification(self, notif_type, description, user, settings_form=None):
+    """
+    Service for handling notifications and alerts. This includes the AlarmDecoder NotificationSystem
+    for event notifications and an integrated Mailer for sending emails (alerts, backups, etc.).
+    """
+    def __init__(self, app):
         """
-        Create a new notification of the given type for the user.
-        `notif_type` is the integer code or name for the notification type.
-        `settings_form` is an optional form object with fields to populate NotificationSettings.
+        Initialize the notification service with the Flask app context. This will load notification
+        configurations and prepare the notification system and email settings.
         """
-        notif = Notification()
-        # If notif_type is given as name (string), convert to code if needed
-        if isinstance(notif_type, str):
-            # Assume NOTIFICATION_TYPES maps code->name, find matching code
-            from ad2web.notifications.constants import NOTIFICATION_TYPES
-            for code, name in NOTIFICATION_TYPES.items():
-                if name.lower() == notif_type.lower():
-                    notif.type = code
-                    break
-        else:
-            notif.type = notif_type
-        notif.description = description
-        notif.user = user_service.get_user(user.id) if hasattr(user_service,
-                                                               "get_user") else user  # use user_service if available
-        db.session.add(notif)
-        # Populate settings via form if provided
-        if settings_form:
-            # Use the form's populate_settings to create NotificationSetting objects
-            settings_form.populate_settings(notif.settings)
-        db.session.commit()  # commit will save notification and associated settings
-        # Refresh internal notifier threads to pick up the new notification
+        self.app = app
+        # Initialize the AlarmDecoder notification system (manages various notifier channels)
+        with app.app_context():
+            self._notif_system = NotificationSystem()
+            # Load SMTP email settings from the database (system email config)
+            from ad2web.settings.models import Setting
+            self.server = Setting.get_by_name('system_email_server',  default='localhost').value
+            self.port = int(Setting.get_by_name('system_email_port', default=25).value)
+            self.tls = Setting.get_by_name('system_email_tls', default=False).value
+            self.auth_required = Setting.get_by_name('system_email_auth', default=False).value
+            self.username = Setting.get_by_name('system_email_username', default='').value
+            self.password = Setting.get_by_name('system_email_password', default='').value
+            self.default_sender = Setting.get_by_name('system_email_from', default='root@alarmdecoder').value
+
+        # Background thread management
+        self._thread = None
+        self._running = False
+
+    def start(self):
+        """
+        Start the background notification monitoring thread. This thread checks for completed notification tasks
+        and processes any delayed notifications in the wait list.
+        """
+        if not self._running:
+            self._running = True
+            # Launch the monitoring thread as a daemon
+            self._thread = threading.Thread(target=self._notification_loop, daemon=True)
+            self._thread.start()
+
+    def stop(self):
+        """
+        Stop the background notification thread.
+        """
+        self._running = False
+        if self._thread is not None:
+            try:
+                self._thread.join(timeout=5)
+            except RuntimeError:
+                pass
+            self._thread = None
+
+    def notify_event(self, event_type, **kwargs):
+        """
+        Dispatch a notification for the given event type using the NotificationSystem.
+        This will queue notifications to all enabled notifiers that subscribe to the event.
+        Any errors during notification dispatch are logged.
+        """
+        with self.app.app_context():
+            errors = self._notif_system.send(event_type, **kwargs)
+            for err in errors:
+                current_app.logger.error(err)
+        return errors
+
+    def send_email(self, send_to, subject, body, files=None, send_from=None):
+        """
+        Send an email immediately. This uses the configured SMTP server and credentials.
+        - send_to: list of recipient email addresses
+        - subject: email subject line
+        - body: plain text email body
+        - files: list of file paths to attach (optional)
+        - send_from: override the sender address (defaults to configured default sender)
+        """
+        if send_from is None:
+            send_from = self.default_sender
+        assert isinstance(send_to, list), "send_to must be a list of recipient addresses"
+        msg = MIMEMultipart()
+        msg['From'] = send_from
+        msg['To'] = COMMASPACE.join(send_to)
+        msg['Date'] = formatdate(localtime=True)
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body))
+
+        # Attach files if provided
+        files = files or []
+        for fpath in files:
+            try:
+                with open(fpath, "rb") as f:
+                    part = MIMEApplication(f.read(), Name=basename(fpath))
+                    part['Content-Disposition'] = f'attachment; filename="{basename(fpath)}"'
+                    msg.attach(part)
+            except Exception as err:
+                current_app.logger.error(f"Failed to attach file {fpath}: {err}")
+
         try:
-            from flask import current_app
-            current_app.decoder.refresh_notifier(notif.id)
-        except Exception:
-            pass
-        return notif
+            smtp = smtplib.SMTP(self.server, self.port)
+            if self.tls:
+                smtp.starttls()
+            if self.auth_required:
+                smtp.login(str(self.username), str(self.password))
+            smtp.sendmail(send_from, send_to, msg.as_string())
+            smtp.quit()
+            current_app.logger.info(f"Sent email to {send_to} via SMTP server {self.server}:{self.port}")
+        except Exception as e:
+            current_app.logger.error(f"Error sending email: {e}", exc_info=True)
 
-    def update_notification(self, notif, settings_form=None, new_description=None):
-        """
-        Update an existing notification's settings and description.
-        `notif` is a Notification object.
-        """
-        if new_description is not None:
-            notif.description = new_description
-        if settings_form:
-            settings_form.populate_settings(notif.settings, id=notif.id)
-        # Ensure notification is enabled after edits (preserves original behavior)
-        notif.enabled = 1
-        db.session.add(notif)
-        db.session.commit()
-        try:
-            from flask import current_app
-            current_app.decoder.refresh_notifier(notif.id)
-        except Exception:
-            pass
-        return notif
+    def update_server(self, server):
+        """Update SMTP server address."""
+        self.server = server
 
-    def delete_notification(self, notif):
-        """Delete a notification and its settings."""
-        db.session.delete(notif)
-        db.session.commit()
-        try:
-            from flask import current_app
-            current_app.decoder.refresh_notifier(notif.id)
-        except Exception:
-            pass
+    def update_port(self, port):
+        """Update SMTP server port."""
+        self.port = int(port)
 
-    def toggle_notification(self, notif):
-        """Toggle a notification's enabled status and return the new status string."""
-        if notif.enabled == 0:
-            notif.enabled = 1
-            status = "Enabled"
-        else:
-            notif.enabled = 0
-            status = "Disabled"
-        db.session.add(notif)
-        db.session.commit()
-        try:
-            from flask import current_app
-            current_app.decoder.refresh_notifier(notif.id)
-        except Exception:
-            pass
-        return status
+    def update_username(self, username):
+        """Update SMTP username for authentication."""
+        self.username = username
 
-    def copy_notification(self, notif):
-        """
-        Clone a notification (and its settings). Returns the new cloned Notification.
-        """
-        # Make a transient copy of the Notification
-        from sqlalchemy.orm.session import make_transient
-        db.session.expunge(notif)
-        make_transient(notif)
-        original_id = notif.id  # store original ID for settings copy
-        notif.id = None
-        notif.description = (notif.description or "") + " Clone"
-        db.session.add(notif)
-        db.session.flush()  # flush to assign new ID
-        new_id = notif.id
-        # Copy settings
-        old_settings = NotificationSetting.query.filter_by(notification_id=original_id).all()
-        for s in old_settings:
-            db.session.expunge(s)
-            make_transient(s)
-            s.id = None
-            s.notification_id = new_id
-            db.session.add(s)
-        db.session.commit()
-        try:
-            from flask import current_app
-            current_app.decoder.refresh_notifier(new_id)
-        except Exception:
-            pass
-        return notif
+    def update_password(self, password):
+        """Update SMTP password for authentication."""
+        self.password = password
 
-    def update_zone_filter(self, notif, zone_id_list):
-        """
-        Update the zone_filter setting for a notification.
-        `zone_id_list` is a list of zone IDs (as strings or ints) to filter on.
-        """
-        # Store the selected zones as JSON in the 'zone_filter' setting
-        setting_value = [] if zone_id_list is None else [int(z) for z in zone_id_list]
-        # Find existing setting or create new
-        setting = NotificationSetting.query.filter_by(notification_id=notif.id, name='zone_filter').first()
-        if not setting:
-            setting = NotificationSetting(name='zone_filter', notification=notif)
-        import json
-        setting.value = json.dumps(setting_value)
-        db.session.add(setting)
-        db.session.commit()
-        return setting_value
+    def update_tls(self, use_tls):
+        """Enable or disable TLS for SMTP."""
+        self.tls = bool(use_tls)
 
-    def get_zone_choices(self):
-        """
-        Retrieve zone choices (id and name) for use in zone filtering.
-        Uses zone_service instead of direct model queries.
-        """
-        zones = zone_service.get_all_zones() if hasattr(zone_service, "get_all_zones") else []
-        # Build a list of 1-99 zones with placeholder names, then replace with actual names where available
-        zone_list = [(str(i), f"Zone {i:02d}") for i in range(1, 100)]
-        # Replace placeholder with configured zone names
-        for z in zones:
-            zid = getattr(z, 'zone_id', None) or getattr(z, 'id', None) or z.zone_id
-            name = getattr(z, 'name', None) or ""
-            if 1 <= int(zid) <= 99:
-                zone_list[int(zid) - 1] = (str(zid),
-                                           f"Zone {int(zid):02d} - {name}" if name else f"Zone {int(zid):02d}")
-        return zone_list
+    def update_auth(self, require_auth):
+        """Enable or disable SMTP authentication requirement."""
+        self.auth_required = bool(require_auth)
 
+    def _notification_loop(self):
+        """
+        Internal loop that monitors asynchronous notification tasks and processes delayed notifications.
+        This replaces the legacy NotificationThread run method.
+        """
+        # The NotificationSystem maintains an internal list of futures for tasks and a wait list for delayed notifications.
+        notifier = self._notif_system
+        while self._running:
+            # Check for completed asynchronous notification tasks
+            with notifier._lock:
+                completed = []
+                for future in list(notifier._futures):
+                    if hasattr(future, 'done') and future.done():
+                        try:
+                            future.result()  # retrieve result to raise exceptions if any
+                        except Exception as exc:
+                            current_app.logger.error(f"Notification task error: {exc}", exc_info=True)
+                        else:
+                            current_app.logger.info("Background notification task completed with no exceptions.")
+                        completed.append(future)
+                # Remove completed futures from the list
+                for fut in completed:
+                    try:
+                        notifier._futures.remove(fut)
+                    except ValueError:
+                        pass
 
-# Instantiate a singleton service for convenience
-notification_service = NotificationService()
+            # Process any notifications that were delayed (e.g., zone restore delays)
+            with self.app.app_context():
+                errors = notifier.process_wait_list()
+                for err in errors:
+                    current_app.logger.error(err)
+
+            time.sleep(5)  # sleep briefly before next check

@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm as Form
 from wtforms import (StringField, HiddenField, PasswordField, SubmitField, TextAreaField,
                      IntegerField, RadioField, FileField, DecimalField, BooleanField, SelectField)
 from wtforms.fields import EmailField, TelField, URLField
-from wtforms.validators import DataRequired, Length, EqualTo, Email, NumberRange, URL, AnyOf, Optional, IPAddress
+from wtforms.validators import InputRequired, Length, EqualTo, Email, NumberRange, URL, AnyOf, Optional, IPAddress
 from flask_login import current_user
 
 from ..user import User
@@ -18,7 +18,7 @@ from .constants import DAILY, WEEKLY, MONTHLY, NONE
 class ProfileForm(Form):
     multipart = True
     next = HiddenField()
-    email = EmailField('Email', [DataRequired(), Email()])
+    email = EmailField('Email', [InputRequired(), Email()])
     avatar_file = FileField('Avatar', [Optional()])
     sex_code = RadioField('Sex', [AnyOf([str(val) for val in SEX_TYPE.keys()])],
                           choices=[(str(val), label) for val, label in SEX_TYPE.items()])
@@ -41,9 +41,9 @@ class ProfileForm(Form):
 
 class PasswordForm(Form):
     next = HiddenField()
-    password = PasswordField('Current password', [DataRequired()])
-    new_password = PasswordField('New password', [DataRequired(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX)])
-    password_again = PasswordField('Password again', [DataRequired(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX), EqualTo('new_password')])
+    password = PasswordField('Current password', [InputRequired()])
+    new_password = PasswordField('New password', [InputRequired(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX)])
+    password_again = PasswordField('Password again', [InputRequired(), Length(PASSWORD_LEN_MIN, PASSWORD_LEN_MAX), EqualTo('new_password')])
     submit = SubmitField('Save')
     cancel = ButtonField('Cancel', onclick="location.href='/settings'")
     def validate_password(form, field):
@@ -53,11 +53,11 @@ class PasswordForm(Form):
             raise ValidationError("Password is wrong.")
 
 class ImportSettingsForm(Form):
-    import_file = FileField('Settings Archive', [DataRequired()])
+    import_file = FileField('Settings Archive', [InputRequired()])
     submit = SubmitField('Import')
 
 class HostSettingsForm(Form):
-    hostname = StringField('Hostname', [DataRequired(), Length(max=63)])
+    hostname = StringField('Hostname', [InputRequired(), Length(max=63)])
     submit = SubmitField('Save')
     cancel = ButtonField('Cancel', onclick="location.href='/settings/host'")
     def validate_hostname(form, field):
@@ -95,22 +95,22 @@ class SwitchBranchForm(Form):
     submit = SubmitField('Checkout')
 
 class EmailConfigureForm(Form):
-    mail_server = StringField('Email Server', [DataRequired(), Length(max=255)], description='ex: smtp.gmail.com')
-    port = IntegerField('Server Port', [DataRequired(), NumberRange(1, 65535)], description='ex: 25 (normal) or 587 (TLS)')
+    mail_server = StringField('Email Server', [InputRequired(), Length(max=255)], description='ex: smtp.gmail.com')
+    port = IntegerField('Server Port', [InputRequired(), NumberRange(1, 65535)], description='ex: 25 (normal) or 587 (TLS)')
     tls = BooleanField('Use TLS?', default=False)
     auth_required = BooleanField('Authentication Required?', default=False)
     username = StringField('Username', [Optional(), Length(max=255)], description='Email Username')
     password = PasswordField('Password', [Optional(), Length(max=255)], description='Email Password')
-    default_sender = StringField('From Email', [DataRequired(), Length(max=255)], default='root@alarmdecoder', description='Address emails will be sent from')
+    default_sender = StringField('From Email', [InputRequired(), Length(max=255)], default='root@alarmdecoder', description='Address emails will be sent from')
     submit = SubmitField('Save')
 
 class UPNPForm(Form):
-    internal_port = IntegerField('Internal Port', [DataRequired()], default=443, description='Internal Port to forward to')
-    external_port = IntegerField('External Port', [DataRequired()], default=random.randint(12000, 60000), description='External Port to map to Internal Port')
+    internal_port = IntegerField('Internal Port', [InputRequired()], default=443, description='Internal Port to forward to')
+    external_port = IntegerField('External Port', [InputRequired()], default=random.randint(12000, 60000), description='External Port to map to Internal Port')
     submit = SubmitField('Save')
 
 class VersionCheckerForm(Form):
-    version_checker_timeout = IntegerField('Timeout in Seconds', [DataRequired(), NumberRange(600)], default=600, description='How often to check for updates')
+    version_checker_timeout = IntegerField('Timeout in Seconds', [InputRequired(), NumberRange(600)], default=600, description='How often to check for updates')
     version_checker_disable = BooleanField('Disable?', default=False)
     submit = SubmitField('Save')
 
