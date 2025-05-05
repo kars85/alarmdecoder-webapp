@@ -1,15 +1,15 @@
 from flask import Blueprint, render_template, current_app, request, flash, url_for, redirect, Response, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
-
+import netifaces
 from ..extensions import db
 from ..user import User, UserDetail
 from ..decorators import admin_required
 from ..settings.models import Setting
-from .forms import (ProfileForm, PasswordForm, ImportSettingsForm, HostSettingsForm,
+from ..forms.settings_form import (ProfileForm, PasswordForm, ImportSettingsForm, HostSettingsForm,
                     EthernetSelectionForm, EthernetConfigureForm, SwitchBranchForm,
                     EmailConfigureForm, UPNPForm, VersionCheckerForm, ExportConfigureForm)
-from .constants import DAILY, NONE  # other constants like HOSTS_FILE, NETWORK_FILE, etc., are used in service
+from ..settings.constants import DAILY, NONE  # other constants like HOSTS_FILE, NETWORK_FILE, etc., are used in service
 from ..certificate import Certificate, CA, SERVER
 from ..ser2sock import ser2sock
 from ..upnp import UPNP
@@ -52,7 +52,7 @@ def profile():
                         if upload_file.filename.rsplit('.', 1)[1].lower() in current_app.config.get('ALLOWED_EXTENSIONS', []):
                             try:
                                 user_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], f"user_{user.id}")
-                                from ..utils import make_dir, allowed_file
+                                from ..utils.path_utils import make_dir, allowed_file
                                 make_dir(user_dir)
                                 # Save file with secure hashed name
                                 file_content = upload_file.read()

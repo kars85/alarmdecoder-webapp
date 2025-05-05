@@ -15,7 +15,7 @@ from .constants import ARM, DISARM, POWER_CHANGED, ALARM, FIRE, BYPASS, BOOT, \
                         PANIC, EVENT_TYPES, LRR, READY, RFX, EXP, AUI
 from .models import EventLogEntry
 from ..logwatch import LogWatcher
-from ..utils import INSTANCE_FOLDER_PATH
+from ..utils.path_utils import INSTANCE_FOLDER_PATH
 
 log = Blueprint('log', __name__, url_prefix='/log')
 

@@ -9,11 +9,11 @@ from wtforms.validators import InputRequired, Length, EqualTo, Email, NumberRang
 from flask_login import current_user
 
 from ..user import User
-from ..utils import PASSWORD_LEN_MIN, PASSWORD_LEN_MAX, AGE_MIN, AGE_MAX, DEPOSIT_MIN, DEPOSIT_MAX
-from ..utils import allowed_file, ALLOWED_AVATAR_EXTENSIONS, INSTANCE_FOLDER_PATH
-from ..utils import SEX_TYPE
+from ..utils.constants import PASSWORD_LEN_MIN, PASSWORD_LEN_MAX, AGE_MIN, AGE_MAX, DEPOSIT_MIN, DEPOSIT_MAX
+from ..utils.path_utils import allowed_file, ALLOWED_AVATAR_EXTENSIONS, INSTANCE_FOLDER_PATH
+from ..utils.constants import SEX_TYPE
 from ..widgets import ButtonField
-from .constants import DAILY, WEEKLY, MONTHLY, NONE
+from ..settings.constants import DAILY, WEEKLY, MONTHLY, NONE
 
 class ProfileForm(Form):
     multipart = True

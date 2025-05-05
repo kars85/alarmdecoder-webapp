@@ -6,7 +6,7 @@ from wtforms.validators import (Required, Length, EqualTo, Email, NumberRange,
         NoneOf)
 from .constants import BAUDRATES
 from ..validators import PathExists, Hex
-from ..utils import STRING_LEN, PASSWORD_LEN_MIN, PASSWORD_LEN_MAX
+from ..utils.constants import STRING_LEN, PASSWORD_LEN_MIN, PASSWORD_LEN_MAX
 from ..widgets import ButtonField, MultiCheckboxField
 from alarmdecoder.panels import ADEMCO, DSC
 

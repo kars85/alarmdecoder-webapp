@@ -74,7 +74,7 @@ if IS_LINUX:
 from alarmdecoder.panels import ADEMCO, DSC
 from ..extensions import db
 from ..user import User, UserDetail
-from ..utils import allowed_file, make_dir, tar_add_directory, tar_add_textfile, INSTANCE_FOLDER_PATH
+from ..utils.path_utils import allowed_file, make_dir, tar_add_directory, tar_add_textfile, INSTANCE_FOLDER_PATH
 
 from ..settings import Setting
 from .forms import (ProfileForm, PasswordForm, ImportSettingsForm, HostSettingsForm,

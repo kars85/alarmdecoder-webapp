@@ -41,7 +41,7 @@ from .constants import ERROR_NOT_AUTHORIZED, ERROR_DEVICE_NOT_INITIALIZED, ERROR
                         ERROR_RECORD_ALREADY_EXISTS, ERROR_RECORD_DOES_NOT_EXIST
 
 from .models import APIKey
-from .utils import generate_api_key
+#from .utils import generate_api_key
 import six
 
 api_settings = Blueprint('api_settings', __name__, url_prefix='/api')
@@ -94,16 +94,14 @@ def keys():
 @login_required
 @admin_required
 def generate_key(user_id):
-    """Generates or regenerates an API key for a specific user (Admin only)."""
     apikey = APIKey.query.filter_by(user_id=user_id).first()
     if not apikey:
         apikey = APIKey(user_id=user_id)
 
-    apikey.key = generate_api_key()
-
+    # Generate new key using the model's utility method
+    apikey.key = APIKey.generate_api_key()
     db.session.add(apikey)
     db.session.commit()
-
     return redirect(url_for('api_settings.keys'))
 
 @api_settings.route('/keys/disable/<int:user_id>')

@@ -10,7 +10,7 @@ from ..user import User, UserDetail, UserHistory, FailedLogin
 from ..extensions import db, mail, login_manager, oid
 from .forms import SignupForm, LoginForm, RecoverPasswordForm, ReauthForm, ChangePasswordForm, OpenIDForm, CreateProfileForm, LicenseAgreementForm
 from ..settings import Setting
-from ..utils import user_is_authenticated
+from ..utils.user_utils import user_is_authenticated
 
 frontend = Blueprint('frontend', __name__)
 

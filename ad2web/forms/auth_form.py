@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Length, EqualTo, Email, Validation
 
 from ..user.models import User
 from flask_login import current_user
-from ..utils import USERNAME_LEN_MIN, USERNAME_LEN_MAX, PASSWORD_LEN_MIN, PASSWORD_LEN_MAX
+from ..utils.constants import USERNAME_LEN_MIN, USERNAME_LEN_MAX, PASSWORD_LEN_MIN, PASSWORD_LEN_MAX
 
 class LoginForm(FlaskForm):
     next = HiddenField()

@@ -7,7 +7,7 @@ from wtforms.validators import Required, Length, EqualTo, Email
 from wtforms.fields.html5 import EmailField
 
 from ..user import User
-from ..utils import (PASSWORD_LEN_MIN, PASSWORD_LEN_MAX,
+from ..utils.constants import (PASSWORD_LEN_MIN, PASSWORD_LEN_MAX,
         USERNAME_LEN_MIN, USERNAME_LEN_MAX)
 
 

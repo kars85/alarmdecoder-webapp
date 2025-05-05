@@ -4,7 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
 from ..extensions import db
-from ..utils import get_current_time, SEX_TYPE, STRING_LEN
+from ..utils.time_utils import get_current_time
+from ..utils.constants import SEX_TYPE, STRING_LEN
 from .constants import USER, USER_ROLE, ADMIN, INACTIVE, USER_STATUS
 from functools import reduce
 

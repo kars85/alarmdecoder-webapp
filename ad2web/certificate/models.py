@@ -13,7 +13,7 @@ from sqlalchemy import Column, orm
 from ..extensions import db
 from ..settings.models import Setting
 from .constants import CA, REVOKED, TGZ, PKCS12, BKS, CRL_CODE
-from ..utils import tar_add_directory, tar_add_textfile
+from ..utils.path_utils import tar_add_directory, tar_add_textfile
 
 class Certificate(db.Model):
     __tablename__ = 'certificates'

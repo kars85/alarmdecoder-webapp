@@ -18,6 +18,7 @@ from alarmdecoder.panels import ADEMCO, DSC
 from alarmdecoder.zonetracking import Zone as ADZone
 import six
 
+
 try:
     from concurrent.futures import ThreadPoolExecutor
     from concurrent.futures import as_completed
@@ -93,8 +94,8 @@ from .models import Notification, NotificationMessage
 from ..extensions import db
 from ..log.models import EventLogEntry
 from ..zones import Zone
-from ..utils import user_is_authenticated
-from .util import check_time_restriction
+from ..utils.user_utils import user_is_authenticated
+from .models import NotificationSetting
 from ..settings import Setting
 
 '''
@@ -181,13 +182,13 @@ class NotificationSystem:
         else:
             current_app.logger.info('Library concurrent.futures.ThreadPoolExecutor not found. Use "sudo apt-get install python-concurrent.futures" to enable Threaded notifications.')
 
-    def send(self, type, **kwargs):
+    def send(self, type, text, raw):
         errors = []
 
         for id, n in self._notifiers.items():
-            if n and n.subscribes_to(type, **kwargs):
+            if n and n.subscribes_to(type, **text):
                 try:
-                    message, rawmessage = self._build_message(type, **kwargs)
+                    message, rawmessage = self._build_message(type, **text)
 
                     if message:
                         if n.delay > 0 and type in (ZONE_FAULT, ZONE_RESTORE, BYPASS):
@@ -199,7 +200,7 @@ class NotificationSystem:
                             notify['message'] = message
                             notify['raw'] = rawmessage
                             notify['type'] = type
-                            notify['zone'] = int(kwargs.get('zone', -1))
+                            notify['zone'] = int(text.get('zone', -1))
 
                             if notify not in self._wait_list:
                                 self._wait_list.append(notify)

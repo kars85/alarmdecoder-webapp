@@ -1,6 +1,6 @@
 from sqlalchemy import Column
 from sqlalchemy.orm.collections import attribute_mapped_collection
-
+from datetime import datetime, timedelta
 from ..extensions import db
 
 class Notification(db.Model):
@@ -34,6 +34,26 @@ class NotificationSetting(db.Model):
     int_value = Column(db.Integer)
     string_value = Column(db.String(255))
 
+    @staticmethod
+    def check_time_restriction(start_time, end_time):
+        """Return True if the current time is within the [start_time, end_time] range."""
+        # Parse times (expects format "HH:MM:SS")
+        st = start_time.split(':')
+        et = end_time.split(':')
+        message_time = datetime.now()
+        start_dt = message_time.replace(hour=int(st[0]), minute=int(st[1]),
+                                        second=int(st[2]), microsecond=0)
+        end_dt = message_time.replace(hour=int(et[0]), minute=int(et[1]),
+                                      second=int(et[2]), microsecond=0)
+        # If the interval spans midnight, adjust date accordingly
+        if end_dt.hour < start_dt.hour:
+            if message_time.hour < end_dt.hour:
+                start_dt -= timedelta(days=1)  # past midnight: start time is yesterday
+            else:
+                end_dt += timedelta(days=1)  # before midnight: end time is next day
+        # Check if current time falls in [start_dt, end_dt]
+        return start_dt <= message_time <= end_dt
+    
     @property
     def value(self):
         for k in ('int_value', 'string_value'):
