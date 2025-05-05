@@ -1,14 +1,14 @@
 from flask_wtf import FlaskForm
-from wtforms import TextField, PasswordField, RadioField, HiddenField
+from wtforms import StringField, PasswordField, RadioField, HiddenField
 from wtforms.validators import InputRequired, Length, EqualTo, AnyOf
 
-from .constants import USER_ROLE, USER_STATUS, USER, ACTIVE
+from ad2web.user.constants import USER_ROLE, USER_STATUS, USER, ACTIVE
 
 class UserForm(FlaskForm):
     """Form for creating and editing users (admin use)."""
     next = HiddenField()
-    name = TextField('Username', validators=[InputRequired()])
-    email = TextField('Email', validators=[InputRequired()])
+    name = StringField('Username', validators=[InputRequired()])
+    email = StringField('Email', validators=[InputRequired()])
     password = PasswordField('Password', validators=[
         InputRequired(),
         Length(min=6, max=64),  # using PASSWORD_LEN_MIN=6, PASSWORD_LEN_MAX=64 as per utils

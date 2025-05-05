@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, abort, request, flash, Response, r
 from flask_login import login_required, current_user
 
 from ..extensions import db
-from ..decorators import admin_required
 from .constants import ACTIVE, CLIENT, CA, PACKAGE_TYPE_LOOKUP, CERTIFICATE_TYPES, CERTIFICATE_STATUS, SERVER, INTERNAL
 from .models import Certificate, CertificatePackage
 from .forms import GenerateCertificateForm
@@ -128,60 +127,68 @@ def revoke(certificate_id):
 
 @certificate.route('/generateCA')
 @login_required
-@admin_required
+
 def generateCA():
-    use_ssl = Setting.get_by_name('use_ssl', default=False).value
-    if use_ssl == False:
-        abort(404)
+    from ..decorators import admin_required    # Import inside the function
+    @admin_required
+    def inner():
+        use_ssl = Setting.get_by_name('use_ssl', default=False).value
+        if use_ssl == False:
+            abort(404)
 
-    ca_cert = Certificate(
-                name="AlarmDecoder CA",
-                description='CA certificate used for authenticating others.',
-                status=ACTIVE,
-                type=CA)
-    ca_cert.generate(common_name='AlarmDecoder CA')
-    db.session.add(ca_cert)
-    db.session.commit()
+        ca_cert = Certificate(
+                    name="AlarmDecoder CA",
+                    description='CA certificate used for authenticating others.',
+                    status=ACTIVE,
+                    type=CA)
+        ca_cert.generate(common_name='AlarmDecoder CA')
+        db.session.add(ca_cert)
+        db.session.commit()
 
-    server_cert = Certificate(
-                name="AlarmDecoder Server",
-                description='Server certificate used by ser2sock.',
-                status=ACTIVE,
-                type=SERVER,
-                ca_id=ca_cert.id)
-    server_cert.generate(common_name='AlarmDecoder Server', parent=ca_cert)
-    db.session.add(server_cert)
-    
-    internal_cert = Certificate(
-                name="AlarmDecoder Internal",
-                description='Internal certificate used to communicate with ser2sock.',
-                status=ACTIVE,
-                type=INTERNAL,
-                ca_id=ca_cert.id)
-    internal_cert.generate(common_name='AlarmDecoder Internal', parent=ca_cert)
-    db.session.add(internal_cert)
+        server_cert = Certificate(
+                    name="AlarmDecoder Server",
+                    description='Server certificate used by ser2sock.',
+                    status=ACTIVE,
+                    type=SERVER,
+                    ca_id=ca_cert.id)
+        server_cert.generate(common_name='AlarmDecoder Server', parent=ca_cert)
+        db.session.add(server_cert)
 
-    config_path = Setting.get_by_name('ser2sock_config_path')
-    if config_path:
-        Certificate.save_certificate_index()
-        Certificate.save_revocation_list()
-        ser2sock.update_config(config_path.value, ca_cert=ca_cert, server_cert=server_cert, use_ssl=True)
+        internal_cert = Certificate(
+                    name="AlarmDecoder Internal",
+                    description='Internal certificate used to communicate with ser2sock.',
+                    status=ACTIVE,
+                    type=INTERNAL,
+                    ca_id=ca_cert.id)
+        internal_cert.generate(common_name='AlarmDecoder Internal', parent=ca_cert)
+        db.session.add(internal_cert)
 
-    db.session.commit()
+        config_path = Setting.get_by_name('ser2sock_config_path')
+        if config_path:
+            Certificate.save_certificate_index()
+            Certificate.save_revocation_list()
+            ser2sock.update_config(config_path.value, ca_cert=ca_cert, server_cert=server_cert, use_ssl=True)
 
-    return redirect(url_for('certificate.index'))
+        db.session.commit()
+
+        return redirect(url_for('certificate.index'))
+    return inner()
 
 @certificate.route('/revokeCA')
 @login_required
-@admin_required
+
 def revokeCA():
-    use_ssl = Setting.get_by_name('use_ssl', default=False).value
-    if use_ssl == False:
-        abort(404)
+    from ..decorators import admin_required    # Import inside the function
+    @admin_required
+    def inner():
+        use_ssl = Setting.get_by_name('use_ssl', default=False).value
+        if use_ssl == False:
+            abort(404)
 
-    ca = Certificate.query.filter_by(type=CA).first()
-    certs = Certificate.query.filter_by(ca_id=ca.id).delete()
-    ca = Certificate.query.filter_by(type=CA).delete()
-    db.session.commit()
+        ca = Certificate.query.filter_by(type=CA).first()
+        certs = Certificate.query.filter_by(ca_id=ca.id).delete()
+        ca = Certificate.query.filter_by(type=CA).delete()
+        db.session.commit()
 
-    return redirect(url_for('certificate.index'))
+        return redirect(url_for('certificate.index'))
+    return inner()

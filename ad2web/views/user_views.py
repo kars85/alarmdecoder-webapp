@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, abort
 from flask_login import login_required, current_user
 
-from .forms import UserForm
-from .service import UserService, DuplicateUserError
+from ad2web.forms.user_form import UserForm
+from ad2web.services.user_service import UserService, DuplicateUserError
 from ..user import User  # user model (for current_user and role checks)
-from ..decorators import admin_required
+from ad2web.decorators import admin_required
 
 users_bp = Blueprint('users', __name__, url_prefix='/settings/users')
 

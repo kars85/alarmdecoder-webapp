@@ -1,6 +1,6 @@
 from wtforms.widgets import html_params, ListWidget, CheckboxInput
 from wtforms import Field, SelectMultipleField
-from flask import Markup 
+from markupsafe import Markup
 
 class ButtonWidget:
     html_params = staticmethod(html_params)

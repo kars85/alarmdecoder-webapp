@@ -1,9 +1,17 @@
 import os
 import psutil
 import signal
-import sh
 from collections import OrderedDict
 import six
+import platform
+import subprocess
+import logging
+logger = logging.getLogger(__name__)
+# Attempt to import `sh` for Unix-like convenience; fallback to None on unsupported platforms
+try:
+    import sh
+except ImportError:
+    sh = None
 
 DEFAULT_SETTINGS = OrderedDict([
     ('daemonize', 1),
@@ -68,13 +76,38 @@ def save_config(path, config_values):
     with open(path, 'w') as configfile:
         config.write(configfile)
 
-def exists():
+def exists() -> bool:
     """
-    Determines whether or not ser2sock exists in our path.
+    Return True if the ser2sock process is currently running.
+    Uses `sh.pgrep` on Unix if available, or falls back to subprocess-based checks.
+    On Windows, uses `tasklist` to detect the running executable.
+    """
+    if sh:
+        try:
+            sh.pgrep("ser2sock")
+            return True
+        except sh.ErrorReturnCode:
+            return False
 
-    :returns: Whether or not ser2sock exists in the path.
-    """
-    return sh.which('ser2sock') is not None
+    system = platform.system()
+    if system == "Windows":
+        try:
+            output = subprocess.check_output(["tasklist"], text=True)
+            return "ser2sock.exe" in output
+        except Exception:
+            return False
+    else:
+        # Unix fallback: pgrep
+        try:
+            subprocess.run(
+                ["pgrep", "ser2sock"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return True
+        except Exception:
+            return False
 
 def start():
     """
@@ -85,30 +118,54 @@ def start():
     except sh.CommandNotFound:
         raise NotFound('Could not locate ser2sock.')
 
-def stop():
+def stop() -> None:
     """
-    Stops ser2sock
+    Terminate the ser2sock daemon process.
+    Uses `sh.kill` if available; on Windows, uses `taskkill`, otherwise `pkill`.
     """
-    for proc in psutil.process_iter():
-        if proc.name() == 'ser2sock':
-            os.kill(proc.pid, signal.SIGKILL)
-
-def hup():
-    """
-    Hups ser2sock in order to force it to reread it's configuration.
-    """
-    found = False
-
-    for proc in psutil.process_iter():
+    if sh:
         try:
-            if proc.name() == 'ser2sock':
-                found = True
-                os.kill(proc.pid, signal.SIGHUP)
-        except OSError as err:
-            raise HupFailed('Error attempting to restart ser2sock (pid {}): {}'.format(proc.pid, err))
+            sh.kill("ser2sock", "-TERM")
+            return
+        except Exception as e:
+            logger.error(f"Failed to stop ser2sock via sh: {e}")
 
-    if not found:
-        start()
+    system = platform.system()
+    if system == "Windows":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/IM", "ser2sock.exe"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as e:
+            logger.error(f"Failed to stop ser2sock via taskkill: {e}")
+    else:
+        try:
+            subprocess.run(["pkill", "ser2sock"], check=True)
+        except Exception as e:
+            logger.error(f"Failed to stop ser2sock via subprocess: {e}")
+
+
+def hup() -> None:
+    """
+    Send SIGHUP to the ser2sock daemon to reload its configuration without stopping it.
+    Uses `sh.kill` if available; otherwise, invokes `pkill -HUP ser2sock` on Unix.
+    """
+    if sh:
+        try:
+            sh.kill("ser2sock", "-HUP")
+            return
+        except Exception as e:
+            logger.error(f"Failed to send HUP via sh: {e}")
+
+    # Fallback implementation for non-Windows
+    if platform.system() != "Windows":
+        try:
+            subprocess.run(["pkill", "-HUP", "ser2sock"], check=True)
+        except Exception as e:
+            logger.error(f"Failed to send HUP via subprocess: {e}")
 
 def update_config(path, *args, **kwargs):
     """

@@ -7,7 +7,7 @@ from .forms import (
     ProwlNotificationForm, GrowlNotificationForm, CustomPostForm, ZoneFilterForm, ReviewNotificationForm,
     MatrixNotificationForm, UPNPPushNotificationForm
 )
-from .constants import NOTIFICATION_TYPE_DETAILS, DEFAULT_SUBSCRIPTIONS, ZONE_FAULT, ZONE_RESTORE
+from .constants import NOTIFICATION_TYPES, DEFAULT_SUBSCRIPTIONS, ZONE_FAULT, ZONE_RESTORE
 
 notifications = Blueprint('notifications', __name__, url_prefix='/settings/notifications')
 
@@ -17,7 +17,6 @@ def notifications_context():
     from .constants import NOTIFICATION_TYPES, EVENT_TYPES
     return {
         'TYPES': NOTIFICATION_TYPES,
-        'TYPE_DETAILS': NOTIFICATION_TYPE_DETAILS,
         'EVENT_TYPES': EVENT_TYPES,
     }
 
