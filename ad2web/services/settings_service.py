@@ -1,3 +1,4 @@
+import subprocess
 from sqlalchemy.exc import SQLAlchemyError
 import os
 import platform
@@ -8,9 +9,7 @@ import ssl
 import urllib.request
 import urllib.error
 import urllib.parse
-
 from flask import current_app
-from sh import sudo, sync, systemctl, reboot, poweroff, halt, ErrorReturnCode, CommandNotFound
 
 try:
     import netifaces
@@ -161,39 +160,60 @@ class SettingsService:
                 return block
         return None
 
-    @staticmethod
-    def update_hostname(new_hostname):
-        """Update system hostname in configuration files and system (Linux only)."""
+    def update_hostname(new_hostname: str) -> bool:
+        """Update system hostname via hostnamectl + /etc/hosts (Linux only)."""
         if platform.system().lower() != 'linux':
             raise RuntimeError("Hostname changes are only supported on Linux.")
+
+        old_hostname = socket.getfqdn()
+
+        # 1) Check writability under sudo for each file
         try:
-            # Use sudo to ensure permissions
-            with sudo:
-                hosts_writable = os.access(HOSTS_FILE, os.W_OK)
-                hostname_writable = os.access(HOSTNAME_FILE, os.W_OK)
-        except Exception as e:
-            current_app.logger.error(f"Permission check failed using sudo: {e}")
-            raise RuntimeError("Could not verify permissions for hostname files.")
-        if not hosts_writable or not hostname_writable:
-            raise PermissionError(
-                f"Cannot write to {' and '.join([p for p, w in [(HOSTS_FILE, hosts_writable), (HOSTNAME_FILE, hostname_writable)] if not w])}")
-        # Update /etc/hosts and /etc/hostname
-        files_updated = False
+            subprocess.run(
+                ['sudo', 'test', '-w', HOSTS_FILE],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            hosts_writable = True
+        except subprocess.CalledProcessError:
+            hosts_writable = False
+
         try:
-            with sudo:
-                hosts_updated = SettingsService._sethostname_in_file(HOSTS_FILE, socket.getfqdn(), new_hostname)
-                hostname_updated = SettingsService._sethostname_in_file(HOSTNAME_FILE, socket.getfqdn(), new_hostname)
-                files_updated = hosts_updated or hostname_updated
-        except Exception as e:
-            current_app.logger.error(f"Error updating hostname files: {e}")
-            raise
-        # Optionally, apply the new hostname immediately
-        if files_updated:
-            try:
-                socket.sethostname(new_hostname.encode())  # This requires root; using sudo context might not apply here
-            except Exception as e:
-                current_app.logger.warning(f"Could not set system hostname immediately: {e}")
-        return files_updated
+            subprocess.run(
+                ['sudo', 'test', '-w', HOSTNAME_FILE],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            hostname_writable = True
+        except subprocess.CalledProcessError:
+            hostname_writable = False
+
+        if not (hosts_writable and hostname_writable):
+            missing = []
+            if not hosts_writable:    missing.append(HOSTS_FILE)
+            if not hostname_writable: missing.append(HOSTNAME_FILE)
+            raise PermissionError(f"Cannot write to: {', '.join(missing)}")
+
+        # 2) Use hostnamectl to change the hostname
+        try:
+            subprocess.run(
+                ['sudo', 'hostnamectl', 'set-hostname', new_hostname],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
+            )
+        except subprocess.CalledProcessError as e:
+            current_app.logger.error(f"Failed to set system hostname: {e}")
+            raise RuntimeError("Could not set system hostname.")
+
+        # 3) Patch /etc/hosts in-place via sudo+sed
+        sed_expr = f"s/{old_hostname}/{new_hostname}/g"
+        try:
+            subprocess.run(
+                ['sudo', 'sed', '-i', sed_expr, HOSTS_FILE],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
+            )
+        except subprocess.CalledProcessError as e:
+            current_app.logger.error(f"Failed to update {HOSTS_FILE}: {e}")
+            raise RuntimeError(f"Could not update {HOSTS_FILE}")
+
+        return True
 
     @staticmethod
     def _sethostname_in_file(config_file, old_hostname, new_hostname):
@@ -222,35 +242,38 @@ class SettingsService:
         """Issue a system reboot command (Linux only)."""
         if platform.system().lower() != 'linux':
             raise RuntimeError("Reboot is only supported on Linux.")
-        with sudo:
-            sync()  # flush filesystem buffers
+        try:
+            # Try systemctl first
+            subprocess.Popen(['systemctl', 'reboot'])
+            current_app.logger.info("System reboot initiated via systemctl.")
+        except FileNotFoundError:
+            # systemctl not found, try the direct reboot command
             try:
-                systemctl('reboot', _bg=True)
-                current_app.logger.info("System reboot initiated via systemctl.")
-            except CommandNotFound:
-                current_app.logger.warning("systemctl not found, trying reboot command.")
-                reboot(_bg=True)
+                subprocess.Popen(['reboot'])
                 current_app.logger.info("System reboot initiated via reboot command.")
+            except Exception as e:
+                current_app.logger.error(f"Failed to initiate reboot: {e}")
+                raise
 
     @staticmethod
     def shutdown_system():
         """Issue a system shutdown command (Linux only)."""
         if platform.system().lower() != 'linux':
             raise RuntimeError("Shutdown is only supported on Linux.")
-        with sudo:
-            sync()
+        try:
+            subprocess.Popen(['systemctl', 'poweroff'])
+            current_app.logger.info("System shutdown initiated via systemctl.")
+        except FileNotFoundError:
             try:
-                systemctl('poweroff', _bg=True)
-                current_app.logger.info("System shutdown initiated via systemctl.")
-            except CommandNotFound:
-                current_app.logger.warning("systemctl not found, trying poweroff command.")
+                subprocess.Popen(['poweroff'])
+                current_app.logger.info("System shutdown initiated via poweroff command.")
+            except FileNotFoundError:
                 try:
-                    poweroff(_bg=True)
-                    current_app.logger.info("System shutdown initiated via poweroff command.")
-                except CommandNotFound:
-                    current_app.logger.warning("poweroff not found, trying halt command.")
-                    halt(_bg=True)
+                    subprocess.Popen(['halt'])
                     current_app.logger.info("System shutdown initiated via halt command.")
+                except Exception as e:
+                    current_app.logger.error(f"No shutdown command succeeded: {e}")
+                    raise
 
     @staticmethod
     def refresh_exporter_thread(decoder):

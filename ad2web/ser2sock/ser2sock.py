@@ -9,16 +9,12 @@ import subprocess
 import logging
 import os
 import psutil
+import sys
+import shutil
 from sqlalchemy.testing.plugin.plugin_base import read_config
 from werkzeug.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
-
-# Attempt to import `sh` for Unix-like convenience; fallback to None on unsupported platforms
-try:
-    import sh
-except ImportError:
-    sh = None
 
 class Ser2SockController:
     def __init__(self, config_path=None):
@@ -27,52 +23,44 @@ class Ser2SockController:
         :param config_path: Optional base path for ser2sock configuration files.
         """
         self.config_path = config_path
-        # Determine if the 'sh' library can be used (available on Unix-like systems).
-        try:
-            import sh
-            self._sh = sh
-        except ImportError:
-            self._sh = None
-
 
 def exists(self) -> bool:
     """
     Check if the 'ser2sock' executable is present in the system PATH.
     :return: True if ser2sock is found in PATH, False otherwise.
     """
-    if self._sh:
-        # Use sh.which if available (Unix-like environments)
-        return self._sh.which('ser2sock') is not None
-    else:
-        # Fallback: use shutil.which for cross-platform support
-        from shutil import which
-        return which('ser2sock') is not None
+    return shutil.which('ser2sock') is not None
 
 def start(self):
     """
     Start the ser2sock service as a background process.
     :raises NotFound: if the ser2sock binary is not found.
     """
-    if self._sh:
-        try:
-            # Use sh to start ser2sock in daemon mode (_bg=True runs in background)
-            self._sh.ser2sock('-d', _bg=True)
-        except self._sh.CommandNotFound:
-            raise NotFound("Could not locate ser2sock.")
-    else:
-        # Fallback: use subprocess to start the process
-        import subprocess, sys
-        if not self.exists():
-            raise NotFound("Could not locate ser2sock.")
-        # Launch ser2sock with '-d' (daemonize) flag. On Windows, '-d' may be ignored if unsupported.
-        creationflags = 0
-        if sys.platform.startswith('win'):
-            # On Windows, to not open a console window, use CREATE_NO_WINDOW
-            creationflags = 0x08000000  # CREATE_NO_WINDOW
-        try:
-            subprocess.Popen(['ser2sock', '-d'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creationflags)
-        except Exception as e:
-            raise NotFound(f"Failed to start ser2sock: {e}")
+    if not self.exists():
+        raise NotFound("Could not locate ser2sock.")
+    # Use CREATE_NO_WINDOW on Windows to avoid spawning a console window
+    creationflags = 0
+    if sys.platform.startswith('win'):
+        creationflags = 0x08000000  # CREATE_NO_WINDOW
+    try:
+        subprocess.Popen(
+            ['ser2sock', '-d'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            creationflags=creationflags
+        )
+    except FileNotFoundError:
+        # ser2sock not in PATH
+        raise NotFound("Could not locate ser2sock.")
+    except Exception as e:
+        # Other errors (e.g., OSError)
+        raise NotFound(f"Failed to start ser2sock: {e}")
+
+
+
+
+class HupFailed(Exception):
+    """Raised when sending SIGHUP fails due to OS error."""
+    pass
 
 
 def hup(self):
@@ -87,13 +75,20 @@ def hup(self):
                 found = True
                 if hasattr(signal, 'SIGHUP'):
                     # On Unix, send SIGHUP to prompt config reload
-                    os.kill(proc.pid, signal.SIGHUP)
+                    try:
+                        os.kill(proc.pid, signal.SIGHUP)
+                    except OSError as err:
+                        raise HupFailed(f"Error attempting to reload ser2sock (pid {proc.pid}): {err}")
                 else:
                     # On non-Unix systems, no SIGHUP; kill the process to restart it
-                    proc.kill()
-        except OSError as err:
-            # If we attempted a HUP and it failed (perhaps permission issues)
-            raise HupFailed(f"Error attempting to restart ser2sock (pid {proc.pid}): {err}")
+                    try:
+                        proc.kill()
+                    except OSError as err:
+                        raise HupFailed(f"Error attempting to restart ser2sock (pid {proc.pid}): {err}")
+        except (psutil.NoSuchProcess, OSError):
+            # Process may have exited or inaccessible; continue scanning
+            continue
+
     # If no process was found, or we killed it on a platform without SIGHUP, start a new one
     if not found or not hasattr(signal, 'SIGHUP'):
         self.start()

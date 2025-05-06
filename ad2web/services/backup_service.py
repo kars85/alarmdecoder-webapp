@@ -9,7 +9,7 @@ from flask import current_app
 from ad2web.extensions import db
 from ad2web.settings.models import Setting
 from ad2web.settings import constants as settings_constants
-from ad2web.utils import tar_add_directory, tar_add_textfile
+from ad2web.utils.path_utils import tar_add_directory, tar_add_textfile
 
 class BackupService:
     """

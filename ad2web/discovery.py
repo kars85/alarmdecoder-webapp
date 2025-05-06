@@ -1,8 +1,8 @@
 # ad2web/discovery.py
 
 from flask import current_app
-from services.discovery_service import DiscoveryService
-from services.mdns_service import MDNSService
+from .services.discovery_service import DiscoveryService
+from .services.mdns_service import MDNSService
 _discovery_service = None
 _mdns_service = None
 

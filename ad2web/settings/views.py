@@ -9,6 +9,7 @@ import os
 import platform
 import random
 import re
+import shutil
 import socket
 import ssl
 import sys
@@ -857,13 +858,19 @@ def hostname():
 
                     # Restart Avahi daemon if present and hostname command succeeded
                     if command_success and hasservice and sh_service:
-                        try:
-                            # Use the imported sh_service directly (only available/imported on Linux)
-                            sh_service("avahi-daemon", "restart") # sh.service still uses sh library features
-                            current_app.logger.info("Restarted avahi-daemon service.")
-                        except Exception as e_service: # Catch potential sh.ErrorReturnCode or other errors
-                            current_app.logger.warning(f"Failed to restart avahi-daemon: {e_service}")
-                            flash('Warning: Could not restart mDNS service (avahi-daemon). Network discovery might be delayed.', 'warning')
+                        if platform.system().lower() == 'linux':
+                            # Determine available service control command
+                            if shutil.which('systemctl'):
+                                service_cmd = ['systemctl', 'restart', 'avahi-daemon']
+                            else:
+                                service_cmd = ['service', 'avahi-daemon', 'restart']
+                            try:
+                                subprocess.run(service_cmd, check=True, stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.PIPE)
+                                current_app.logger.info("Restarted avahi-daemon service.")
+                            except (FileNotFoundError, subprocess.CalledProcessError) as e:
+                                current_app.logger.warning(f"Failed to restart avahi-daemon: {e}")
+                                flash('Warning: Could not restart mDNS service (avahi-daemon).', 'warning')
 
                 except Exception as e_update: # Catch errors during file writes (_sethostname flashes its own) or unexpected issues
                      current_app.logger.error(f'An unexpected error occurred while setting hostname: {e_update}', exc_info=True)

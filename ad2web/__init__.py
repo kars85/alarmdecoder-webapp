@@ -8,7 +8,7 @@ from ad2web.admin.views import admin_bp
 # Import the SocketIO “decoder” server factory (unchanged)
 from ad2web.decoder import create_decoder_socket
 # Import your new service
-from services.decoder_service import DecoderService
+from .services.decoder_service import DecoderService
 from ad2web.discovery import init_discovery, start_discovery
 
 def create_app():

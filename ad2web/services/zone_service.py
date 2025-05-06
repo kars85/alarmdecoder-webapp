@@ -1,7 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 
 from ..extensions import db
-from .models import Zone
+from ..zones.models import Zone
 
 class ZoneService:
     """Service layer for zone management logic."""

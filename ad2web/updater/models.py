@@ -1,11 +1,12 @@
 import os
 import logging
 import json
+import shutil
+import subprocess
+
 import six.moves.urllib.request
 import six.moves.urllib.parse
 import six.moves.urllib.error
-
-import sh
 import sqlalchemy.exc
 from sqlalchemy import create_engine
 from alembic import command
@@ -180,10 +181,14 @@ class WebappUpdater:
     @property
     def version(self):
         version = ''
-
         try:
-            version = sh.git('describe', tags=True, always=True, long=True)
-        except:
+            result = subprocess.run(
+                ['git', 'describe', '--tags', '--always', '--long'],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True
+            )
+            version = result.stdout.strip()
+        except subprocess.CalledProcessError:
+            # If git is not available or the command fails, leave version as empty string
             pass
 
         return version.strip()
@@ -201,51 +206,58 @@ class WebappUpdater:
 
     def update(self):
         """
-        Performs the update
+        Performs the update.
 
-        :returns: Returns the update results
+        :returns: A dict with keys 'status' ('PASS' or 'FAIL') and
+                  'restart_required' (bool).
         """
         _log('WebappUpdater: starting..')
 
-        ret = { 'status': 'FAIL', 'restart_required': False }
+        result = {'status': 'FAIL', 'restart_required': False}
 
         if not self._enabled:
             _log('WebappUpdater: disabled')
-            return ret
+            return result
 
         git_succeeded = False
         db_succeeded = False
         git_revision = self._source_updater.local_revision
         db_revision = self._db_updater.current_revision
 
+        # 1) Try pulling new code
         try:
             git_succeeded = self._source_updater.update()
-
-            if git_succeeded:
-                self._db_updater.refresh()
-                db_succeeded = self._db_updater.update()
-
-        except sh.ErrorReturnCode:
+        except subprocess.CalledProcessError as e:
+            _log(f'WebappUpdater: git update failed: {e}', logLevel=logging.ERROR)
             git_succeeded = False
 
-        if not git_succeeded or not db_succeeded:
-            _log('WebappUpdater: failed - [{},{}]'.format(git_succeeded, db_succeeded), logLevel=logging.ERROR)
+        # 2) If code pulled, attempt DB migration
+        if git_succeeded:
+            try:
+                self._db_updater.refresh()
+                db_succeeded = self._db_updater.update()
+            except subprocess.CalledProcessError as e:
+                _log(f'WebappUpdater: db update failed: {e}', logLevel=logging.ERROR)
+                db_succeeded = False
 
-            if not db_succeeded:
+        # 3) Roll back on failure
+        if not (git_succeeded and db_succeeded):
+            _log(f'WebappUpdater: failed - [git={git_succeeded}, db={db_succeeded}]',
+                 logLevel=logging.ERROR)
+
+            if db_succeeded is False:
+                # undo any partial DB changes
                 self._db_updater.downgrade(db_revision)
 
-            if not git_succeeded or not db_succeeded:
-                self._source_updater.reset(git_revision)
+            # restore code to prior revision
+            self._source_updater.reset(git_revision)
+            return result
 
-            return ret
-
+        # 4) All good!
         _log('WebappUpdater: success')
-
-        ret['status'] = 'PASS'
-        ret['restart_required'] = True
-
-        return ret
-
+        result['status'] = 'PASS'
+        result['restart_required'] = True
+        return result
 
 class SourceUpdater:
     """
@@ -260,16 +272,13 @@ class SourceUpdater:
         :type name: string
         """
 
-        self._path = None
-        try:
-            if path is not None:
-                self._git = sh.git.bake(work_tree=path, git_dir=os.path.join(path, '.git'))
-                self._path = path
-            else:
-                self._git = sh.git
-
-        except sh.CommandNotFound:
-            self._git = None
+        self._path = path
+        # Determine if Git is available in PATH
+        git_available = shutil.which('git') is not None
+        if not git_available:
+            self._git_available = False
+        else:
+            self._git_available = True
 
         self.name = name
         self.project_url = project_url
@@ -349,17 +358,19 @@ class SourceUpdater:
         git_succeeded = False
         git_revision = self.local_revision
 
-        try:
-            self._git.merge('origin/{}'.format(self.branch))
-            git_succeeded = True
-
-        except sh.ErrorReturnCode:
+        git_succeeded = False
+        if not self._git_available:
             git_succeeded = False
-
-        if not git_succeeded:
-            _log('SourceUpdater: failed.', logLevel=logging.ERROR)
-
-            return False
+        else:
+            try:
+                # Run "git merge origin/<branch>"
+                subprocess.run(
+                    ['git', 'merge', f'origin/{self.branch}'],
+                    cwd=(self._path or None), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                git_succeeded = True
+            except subprocess.CalledProcessError:
+                git_succeeded = False
 
         _log('SourceUpdater: success')
 
@@ -369,78 +380,104 @@ class SourceUpdater:
         return ret
 
     def reset(self, revision):
-        try:
-            self._git('reset', '--hard', revision)
-        except sh.ErrorReturnCode:
-            # TODO do something here?
-            pass
+        if self._git_available:
+            try:
+                subprocess.run(
+                    ['git', 'reset', '--hard', revision],
+                    cwd=(self._path or None), check=True,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except subprocess.CalledProcessError:
+                # TODO: handle error (if needed)
+                pass
 
     def _retrieve_commit_count(self):
         """
         Retrieves the commit counts
         """
-        try:
-            results = self._git('rev-list', '@{upstream}...HEAD', left_right=True).strip()
-
-            self._commits_behind, self._commits_ahead = results.count('<'), results.count('>')
-            self._update_status()
-        except sh.ErrorReturnCode:
+        if self._git_available:
+            try:
+                output = subprocess.check_output(
+                    ['git', 'rev-list', '@{upstream}...HEAD', '--left-right'],
+                    cwd=(self._path or None), stderr=subprocess.DEVNULL
+                )
+                results = output.decode('utf-8').strip()
+                self._commits_behind = results.count('<')
+                self._commits_ahead = results.count('>')
+            except subprocess.CalledProcessError:
+                self._commits_behind, self._commits_ahead = 0, 0
+        else:
             self._commits_behind, self._commits_ahead = 0, 0
+        self._update_status()
 
     def _retrieve_branch(self):
         """
         Retrieves the current branch
         """
-        try:
-            results = self._git('symbolic-ref', 'HEAD', q=True).strip()
-            self._branch = results.replace('refs/heads/', '')
-        except sh.ErrorReturnCode:
-            self._branch = ''
+        self._branch = ''
+        if self._git_available:
+            try:
+                output = subprocess.check_output(
+                    ['git', 'symbolic-ref', 'HEAD', '-q'],
+                    cwd=(self._path or None), stderr=subprocess.DEVNULL
+                )
+                results = output.decode('utf-8').strip()
+                self._branch = results.replace('refs/heads/', '')
+            except subprocess.CalledProcessError:
+                self._branch = ''
 
     def _retrieve_local_revision(self):
         """
         Retrieves the current local revision
         """
-        try:
-            self._local_revision = self._git('rev-parse', 'HEAD').strip()
-        except sh.ErrorReturnCode:
-            self._local_revision = None
+        self._local_revision = None
+        if self._git_available:
+            try:
+                output = subprocess.check_output(
+                    ['git', 'rev-parse', 'HEAD'],
+                    cwd=(self._path or None), stderr=subprocess.DEVNULL
+                )
+                self._local_revision = output.decode('utf-8').strip()
+            except subprocess.CalledProcessError:
+                self._local_revision = None
 
     def _retrieve_remote_revision(self):
         """
         Retrieves the current remote revision
         """
-        results = None
-
-        try:
-            results = self._git('rev-parse', '--verify', '--quiet', '@{upstream}').strip()
-
-            if results == '':
-                results = None
-        except sh.ErrorReturnCode:
-            pass
-
-        self._remote_revision = results
+        remote_rev = None
+        if self._git_available:
+            try:
+                output = subprocess.check_output(
+                    ['git', 'rev-parse', '--verify', '--quiet', '@{upstream}'],
+                    cwd=(self._path or None), stderr=subprocess.DEVNULL
+                )
+                result_str = output.decode('utf-8').strip()
+                if result_str != '':
+                    remote_rev = result_str
+                # (If empty, remote_rev stays None)
+            except subprocess.CalledProcessError:
+                # Git returns non-zero if no upstream; ignore to keep remote_rev = None
+                pass
+        self._remote_revision = remote_rev
 
     def _fetch(self):
         """
         Performs a fetch from the origin
         """
-        try:
-            # HACK:
-            #
-            # Ran into an issue when trying to fetch from an ssh-based
-            # repository and need a good way to make sure that fetch doesn't
-            # forever block while asking for an ssh password.  _bg didn't do
-            # the job but a combination of _iter and _timeout seems to work
-            # fine.
-            #
-            for c in self._git.fetch('origin', _iter_noblock=True, _timeout=30):
+        if self._git_available:
+            try:
+                subprocess.run(
+                    ['git', 'fetch', 'origin'],
+                    cwd=(self._path or None), timeout=30, check=True,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except subprocess.TimeoutExpired:
+                # Fetch took longer than 30s; ignore or handle as needed
                 pass
-        except sh.TimeoutException:
-            pass
-        except sh.ErrorReturnCode:
-            pass
+            except subprocess.CalledProcessError:
+                # Fetch failed (non-zero exit); ignore for now
+                pass
 
     def _update_status(self, status=''):
         """
@@ -491,23 +528,32 @@ class SourceUpdater:
 
     def _check_remotes(self):
         """
-        Hack of a check determine if our origin remote is via ssh since it
-        blocks if the key has a password.
+        Determine if our 'origin' remote is _not_ an SSH URL
+        (SSH URIs contain '@', which can block if the key has a password).
 
-        :returns: Whether or not we're running with an ssh remote.
+        :returns: True if it's safe (non-SSH) or git isn't available,
+                  False if it’s an SSH remote or the git command fails.
         """
-        if not self._git:
-            return True
-
         try:
-            remotes = self._git.remote(v=True)
-            for r in remotes.strip().split("\n"):
-                name, path = r.split("\t")
-                if name == 'origin' and '@' in path:
-                    return False
-        except sh.ErrorReturnCode_128:
+            # Run `git remote -v` and ignore stderr
+            output = subprocess.check_output(
+                ['git', 'remote', '-v'],
+                stderr=subprocess.DEVNULL
+            ).decode('utf-8')
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # git failed or isn’t installed → treat as unsafe/SSH
             return False
 
+        for line in output.strip().splitlines():
+            # typical format: "<name>\t<url> (fetch)"
+            parts = line.split()
+            if len(parts) >= 2:
+                name, url = parts[0], parts[1]
+                if name == 'origin' and '@' in url:
+                    # found an SSH-style origin → unsafe
+                    return False
+
+        # no SSH-style origin found → safe
         return True
 
 

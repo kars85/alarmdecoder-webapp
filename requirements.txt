@@ -38,10 +38,6 @@ alarmdecoder~=1.13.13
 
 alembic~=1.15.2
 
-argparse~=1.4.0
-
-async
-
 blinker
 
 cffi
@@ -52,11 +48,11 @@ docutils~=0.21.2
 
 gevent
 
-gevent-socketio
-
 gevent-websocket
 
 gitdb
+
+python-socketio[gevent]>=5.0.0
 
 greenlet
 
@@ -74,7 +70,7 @@ pyOpenSSL~=25.0.0
 
 pycparser
 
-python-openid
+python3-openid>=3.2.0
 
 pytz
 

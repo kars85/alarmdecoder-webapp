@@ -3,8 +3,7 @@ from functools import wraps, update_wrapper
 from flask import abort, make_response, request, current_app
 from flask_login import current_user
 from datetime import timedelta
-from .settings.models import Setting
-from .utils import user_is_anonymous
+from .utils.user_utils import user_is_anonymous
 
 def admin_required(f):
     @wraps(f)
@@ -15,14 +14,15 @@ def admin_required(f):
     return decorated_function
 
 def admin_or_first_run_required(f):
-	@wraps(f)
-	def decorated_function(*args, **kwargs):
-		if user_is_anonymous(current_user) or not current_user.is_admin():
-			if Setting.get_by_name('setup_complete', default=False) == True:
-				abort(403)
-
-		return f(*args, **kwargs)
-	return decorated_function
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if user_is_anonymous(current_user) or not current_user.is_admin():
+            # Import Setting here to avoid circular dependency at import time
+            from ad2web.settings.models import Setting
+            if Setting.get_by_name('setup_complete', default=False).value is True:
+                abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,

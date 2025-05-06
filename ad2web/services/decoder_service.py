@@ -131,7 +131,7 @@ class DecoderService:
             current_app.logger.info(f'AlarmDecoder Webapp starting up - v{self.version}')
 
             # Expose user authentication helper to templates
-            from ad2web.utils import user_is_authenticated
+            from ad2web.utils.user_utils import user_is_authenticated
             current_app.jinja_env.globals['user_is_authenticated'] = user_is_authenticated
 
             # Apply any pending database schema updates (via Updater)
@@ -155,8 +155,8 @@ class DecoderService:
             self.backup_service = BackupService(app=self.app, notification_service=self.notification_service)
 
             # Initialize other background threads (camera polling, version checking, discovery, UPNP)
-            from ad2web.updater.types import VersionChecker  # thread that checks for updates
-            from ad2web.cameras import CameraSystem, CameraChecker  # camera monitoring thread
+            from ad2web.decoder import VersionChecker  # thread that checks for updates
+            from ad2web.decoder import CameraSystem, CameraChecker  # camera monitoring thread
 
             self._camera_thread = CameraChecker(self)
             self._version_thread = VersionChecker(self)

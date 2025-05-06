@@ -7,12 +7,11 @@
 """
 
 from flask_testing import TestCase as Base, Twill
-
 from ad2web import create_app
 from ad2web.user import User, UserDetail, ADMIN, USER, ACTIVE
 from ad2web.config import TestConfig
 from ad2web.extensions import db
-from ad2web.utils import MALE
+from ad2web.utils.constants import MALE
 
 
 class TestCase(Base):

@@ -1,6 +1,6 @@
 import os
 
-from .utils import make_dir, INSTANCE_FOLDER_PATH
+from .utils.path_utils import make_dir, INSTANCE_FOLDER_PATH
 
 
 class BaseConfig:

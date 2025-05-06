@@ -10,7 +10,7 @@ try:
     from urllib.parse import urlparse
 except ImportError:
     from urlparse import urlparse
-import sleekxmpp
+import slixmpp
 import json
 import re
 import ssl
@@ -85,7 +85,7 @@ from ..extensions import db
 from ..log.models import EventLogEntry
 from ..settings import Setting
 from ..zones import Zone
-from ..utils import user_is_authenticated
+from ad2web.utils.user_utils import user_is_authenticated
 
 # Inline time restriction logic (replaces NotificationSetting.check_time_restriction)
 def check_time_restriction(start_time, end_time):

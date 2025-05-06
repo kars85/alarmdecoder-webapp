@@ -5,11 +5,11 @@ import json
 import time
 
 from sqlalchemy.orm import class_mapper
-from .utils import tar_add_directory, tar_add_textfile
+from .utils.path_utils import tar_add_directory, tar_add_textfile
 from .settings import Setting
 from .settings.constants import EXPORT_MAP
 from datetime import datetime
-from .utils import INSTANCE_FOLDER_PATH
+from .utils.path_utils import INSTANCE_FOLDER_PATH
 from flask import Response
 
 class Exporter:

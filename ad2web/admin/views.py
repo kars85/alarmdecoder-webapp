@@ -10,7 +10,7 @@ from ..services.user_service import (
     UserService, DuplicateUserError
 )
 
-from ..forms.admin import UserForm
+from ad2web.forms.user_form import UserForm
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/settings/admin')
 

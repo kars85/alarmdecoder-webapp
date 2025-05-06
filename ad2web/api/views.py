@@ -13,9 +13,12 @@ Most API endpoints require authentication via an API key passed either in the
 (e.g., admin checks) is applied where necessary.
 """
 import json
-import sh
+
+
 import os
+import platform
 import socket
+import subprocess
 
 from functools import wraps
 from datetime import timedelta
@@ -29,7 +32,7 @@ from alarmdecoder.panels import ADEMCO, DSC
 from alarmdecoder.zonetracking import Zone as ADZone
 
 from ..extensions import db
-from ..decorators import admin_required, crossdomain
+from ad2web.decorators import admin_required, crossdomain
 
 from ..user import User, USER_ROLE, USER_STATUS, ADMIN
 from ..zones import Zone
@@ -1264,13 +1267,26 @@ def system_reboot():
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
-    try:
-        sh.reboot()
-    except sh.ErrorReturnCode_1:
-        return jsonify(build_error(ERROR_NOT_AUTHORIZED, "System did not respond correctly.")), UNAUTHORIZED
-    except sh.ErrorReturnCode_143:
-        pass
-
+    if platform.system().lower() == 'windows':
+        # On Windows, use the shutdown command to reboot (/r = reboot, /t 0 = no delay, /f = force)
+        try:
+            subprocess.run(['shutdown', '/r', '/t', '0', '/f'], check=True)
+        except subprocess.CalledProcessError as e:
+            # If the command fails (non-zero exit), treat error as we would on Linux
+            return jsonify(build_error(ERROR_NOT_AUTHORIZED, f"Reboot command failed: {e}")), UNAUTHORIZED
+    else:
+        try:
+            subprocess.run(['reboot'], check=True)
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 1:
+                # Exit code 1: not authorized (permission denied)
+                return jsonify(build_error(ERROR_NOT_AUTHORIZED, "System did not respond correctly.")), UNAUTHORIZED
+            elif e.returncode == 143:
+                # Exit code 143: process terminated (system is rebooting)
+                pass
+            else:
+                # Other error codes: treat as unexpected failure
+                raise
     return jsonify(), ACCEPTED
 
 @api.route('/system/shutdown', methods=['POST'])
@@ -1288,6 +1304,16 @@ def system_shutdown():
     if not check_admin(request_user):
         return jsonify(build_error(ERROR_NOT_AUTHORIZED, "Insufficient privileges for request.")), UNAUTHORIZED
 
-    sh.shutdown()
-
+    if platform.system().lower() == 'windows':
+        try:
+            subprocess.run(['shutdown', '/s', '/t', '0', '/f'], check=True)
+        except subprocess.CalledProcessError as e:
+            return jsonify(build_error(ERROR_NOT_AUTHORIZED, f"Shutdown failed: {e}")), UNAUTHORIZED
+    else:
+        try:
+            # Use 'poweroff' for immediate shutdown on Unix
+            subprocess.run(['poweroff'], check=True)
+        except subprocess.CalledProcessError as e:
+            # If the shutdown command fails (e.g., permission denied)
+            return jsonify(build_error(ERROR_NOT_AUTHORIZED, "System did not respond correctly.")), UNAUTHORIZED
     return jsonify(), ACCEPTED
