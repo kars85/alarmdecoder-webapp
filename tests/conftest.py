@@ -22,7 +22,7 @@ except ImportError:
 @pytest.fixture(scope="session")
 def app():
     """Create Flask app with testing config once for all tests."""
-    app = create_app(TestConfig)  # uses in-memory DB, TESTING=True&#8203;:contentReference[oaicite:5]{index=5}
+    app = create_app(TestConfig)  # uses in-memory DB, TESTING=True
     return app
 
 @pytest.fixture(scope="function")

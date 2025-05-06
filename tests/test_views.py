@@ -1,5 +1,3 @@
-from werkzeug.urls import url_quote
-
 from ad2web.user import User
 from ad2web.extensions import db, mail
 
