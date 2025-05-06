@@ -6,7 +6,7 @@ from ad2web.extensions import db
 from ad2web.user.models import User
 from ad2web.user.constants import ADMIN, USER, ACTIVE
 
-# Patch background threads to prevent them from running during tests&#8203;:contentReference[oaicite:3]{index=3}&#8203;:contentReference[oaicite:4]{index=4}
+# Patch background threads to prevent them from running during tests
 try:
     import ad2web.decoder as _dec
     setattr(_dec.DecoderService, "start", lambda self: None)

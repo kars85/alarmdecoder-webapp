@@ -2,7 +2,6 @@ from sqlalchemy import Column, types
 from sqlalchemy.ext.mutable import Mutable
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-
 from ..extensions import db
 from ..utils.time_utils import get_current_time
 from ..utils.constants import SEX_TYPE, STRING_LEN

@@ -1,7 +1,7 @@
 from ..extensions import db
 from ..user import User  # User model
 from ..api.models import APIKey  # APIKey model (one-to-one with User)
-from ..api.utils import generate_api_key  # utility to generate random API key
+from ad2web.api.models import generate_api_key  # utility to generate random API key
 
 def create_or_update_api_key(user_id):
     """

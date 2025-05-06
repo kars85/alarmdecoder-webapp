@@ -1,5 +1,5 @@
 """
-    ad2web/utils.py
+
     ~~~~~~~~~~~~~~~
 
     Provides miscellaneous utility functions and constants used across the

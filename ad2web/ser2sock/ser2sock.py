@@ -4,8 +4,13 @@ Cross-platform control utilities for the ser2sock daemon.
 Provides functions to detect, reload, stop, and update configuration of the ser2sock process.
 """
 import platform
+import signal
 import subprocess
 import logging
+import os
+import psutil
+from sqlalchemy.testing.plugin.plugin_base import read_config
+from werkzeug.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
@@ -15,109 +20,140 @@ try:
 except ImportError:
     sh = None
 
-
-def exists() -> bool:
-    """
-    Return True if the ser2sock process is currently running.
-    Uses `sh.pgrep` on Unix if available, or falls back to subprocess-based checks.
-    On Windows, uses `tasklist` to detect the running executable.
-    """
-    if sh:
+class Ser2SockController:
+    def __init__(self, config_path=None):
+        """
+        Initialize the Ser2SockController.
+        :param config_path: Optional base path for ser2sock configuration files.
+        """
+        self.config_path = config_path
+        # Determine if the 'sh' library can be used (available on Unix-like systems).
         try:
-            sh.pgrep("ser2sock")
-            return True
-        except sh.ErrorReturnCode:
-            return False
+            import sh
+            self._sh = sh
+        except ImportError:
+            self._sh = None
 
-    system = platform.system()
-    if system == "Windows":
-        try:
-            output = subprocess.check_output(["tasklist"], text=True)
-            return "ser2sock.exe" in output
-        except Exception:
-            return False
+
+def exists(self) -> bool:
+    """
+    Check if the 'ser2sock' executable is present in the system PATH.
+    :return: True if ser2sock is found in PATH, False otherwise.
+    """
+    if self._sh:
+        # Use sh.which if available (Unix-like environments)
+        return self._sh.which('ser2sock') is not None
     else:
-        # Unix fallback: pgrep
-        try:
-            subprocess.run(
-                ["pgrep", "ser2sock"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return True
-        except Exception:
-            return False
+        # Fallback: use shutil.which for cross-platform support
+        from shutil import which
+        return which('ser2sock') is not None
 
-
-def hup() -> None:
+def start(self):
     """
-    Send SIGHUP to the ser2sock daemon to reload its configuration without stopping it.
-    Uses `sh.kill` if available; otherwise, invokes `pkill -HUP ser2sock` on Unix.
+    Start the ser2sock service as a background process.
+    :raises NotFound: if the ser2sock binary is not found.
     """
-    if sh:
+    if self._sh:
         try:
-            sh.kill("ser2sock", "-HUP")
-            return
-        except Exception as e:
-            logger.error(f"Failed to send HUP via sh: {e}")
-
-    # Fallback implementation for non-Windows
-    if platform.system() != "Windows":
-        try:
-            subprocess.run(["pkill", "-HUP", "ser2sock"], check=True)
-        except Exception as e:
-            logger.error(f"Failed to send HUP via subprocess: {e}")
-
-
-def stop() -> None:
-    """
-    Terminate the ser2sock daemon process.
-    Uses `sh.kill` if available; on Windows, uses `taskkill`, otherwise `pkill`.
-    """
-    if sh:
-        try:
-            sh.kill("ser2sock", "-TERM")
-            return
-        except Exception as e:
-            logger.error(f"Failed to stop ser2sock via sh: {e}")
-
-    system = platform.system()
-    if system == "Windows":
-        try:
-            subprocess.run(
-                ["taskkill", "/F", "/IM", "ser2sock.exe"],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as e:
-            logger.error(f"Failed to stop ser2sock via taskkill: {e}")
+            # Use sh to start ser2sock in daemon mode (_bg=True runs in background)
+            self._sh.ser2sock('-d', _bg=True)
+        except self._sh.CommandNotFound:
+            raise NotFound("Could not locate ser2sock.")
     else:
+        # Fallback: use subprocess to start the process
+        import subprocess, sys
+        if not self.exists():
+            raise NotFound("Could not locate ser2sock.")
+        # Launch ser2sock with '-d' (daemonize) flag. On Windows, '-d' may be ignored if unsupported.
+        creationflags = 0
+        if sys.platform.startswith('win'):
+            # On Windows, to not open a console window, use CREATE_NO_WINDOW
+            creationflags = 0x08000000  # CREATE_NO_WINDOW
         try:
-            subprocess.run(["pkill", "ser2sock"], check=True)
+            subprocess.Popen(['ser2sock', '-d'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creationflags)
         except Exception as e:
-            logger.error(f"Failed to stop ser2sock via subprocess: {e}")
+            raise NotFound(f"Failed to start ser2sock: {e}")
 
 
-def update_config(config_path: str) -> None:
+def hup(self):
     """
-    Update the ser2sock configuration file at `config_path`.
-    After updating the file, signal the running daemon to reload by sending a SIGHUP.
-
-    Note:
-        - This function does not stop and restart the daemon, only reloads.
-        - For a full restart, call `stop()` then `start()` in your orchestration logic.
+    Reload ser2sock configuration by sending SIGHUP, or restart the service if needed.
+    :raises HupFailed: if sending SIGHUP fails due to OS error.
     """
-    config_file = f"{config_path.rstrip('/')}/ser2sock.cfg"
-    try:
-        # Example: rewrite configuration file in place
-        # (Implement actual config serialization logic here)
-        with open(config_file, 'w', encoding='utf-8') as fp:
-            # Placeholder: write default or templated configuration
-            fp.write(f"# ser2sock configuration updated at {__import__('time').ctime()}\n")
-        # Signal the daemon to reload
-        hup()
-    except Exception as e:
-        logger.error(f"Failed to update ser2sock config at {config_file}: {e}")
-        raise
+    found = False
+    for proc in psutil.process_iter():
+        try:
+            if proc.name() == 'ser2sock':
+                found = True
+                if hasattr(signal, 'SIGHUP'):
+                    # On Unix, send SIGHUP to prompt config reload
+                    os.kill(proc.pid, signal.SIGHUP)
+                else:
+                    # On non-Unix systems, no SIGHUP; kill the process to restart it
+                    proc.kill()
+        except OSError as err:
+            # If we attempted a HUP and it failed (perhaps permission issues)
+            raise HupFailed(f"Error attempting to restart ser2sock (pid {proc.pid}): {err}")
+    # If no process was found, or we killed it on a platform without SIGHUP, start a new one
+    if not found or not hasattr(signal, 'SIGHUP'):
+        self.start()
+
+
+def stop(self):
+    """
+    Stop any running ser2sock process.
+    """
+    # Iterate over all running processes and kill those named 'ser2sock'
+    for proc in psutil.process_iter():
+        try:
+            if proc.name() == 'ser2sock':
+                proc.kill()  # force kill, similar to SIGKILL
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            # Ignore processes that terminate during iteration or those we cannot access
+            continue
+
+
+def update_config(self, path: str, *args, **kwargs):
+    """
+    Update ser2sock configuration with new settings and reload the service.
+    :param path: Filesystem path to the ser2sock configuration directory.
+    :param args: Additional positional args (unused).
+    :param kwargs: Keyword args for specific settings (device_path, device_baudrate, device_port, use_ssl, etc).
+    """
+    # Determine the config file path
+    config_path = os.path.join(path, 'ser2sock.conf') if path else None
+    config = read_config(config_path) if config_path else None
+
+    # Merge existing config with provided overrides
+    config_values = {}
+    if config and config.has_section('ser2sock'):
+        for k, v in config.items('ser2sock'):
+            config_values[k] = v
+    # Apply overrides from kwargs
+    if 'device_path' in kwargs:
+        config_values['device'] = kwargs['device_path']
+    if 'device_baudrate' in kwargs:
+        config_values['baudrate'] = kwargs['device_baudrate']
+    if 'device_port' in kwargs:
+        config_values['port'] = kwargs['device_port']
+    if 'use_ssl' in kwargs:
+        config_values['encrypted'] = int(kwargs['use_ssl'])
+    # Handle SSL certificate saving if needed
+    if config_values.get('encrypted') == 1:
+        cert_dir = os.path.join(path, 'certs')
+        if not os.path.exists(cert_dir):
+            os.mkdir(cert_dir, 0o700)
+        ca_cert = kwargs.get('ca_cert')
+        server_cert = kwargs.get('server_cert')
+        if ca_cert and server_cert:
+            ca_cert.export(cert_dir)
+            server_cert.export(cert_dir)
+            # Update config paths for certificates
+            config_values['ca_certificate'] = os.path.join(cert_dir, f"{ca_cert.name}.pem")
+            config_values['ssl_certificate'] = os.path.join(cert_dir, f"{server_cert.name}.pem")
+            config_values['ssl_key'] = os.path.join(cert_dir, f"{server_cert.name}.key")
+    # Save the updated configuration to file
+    save_config(config_path, config_values)
+    # Signal ser2sock to reload (or restart it)
+    self.hup()
+
