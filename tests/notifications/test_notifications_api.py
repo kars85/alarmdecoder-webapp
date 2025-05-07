@@ -1,7 +1,7 @@
 import json
 import pytest
 from ad2web.services.notification_service import NotificationService
-from ad2web.notifications.constants import EMAIL, EVENT_ZONE_FAULT
+from ad2web.notifications.constants import EMAIL, ZONE_FAULT
 
 def test_api_list_empty(admin_client):
     res = admin_client.get("/api/notifications")
@@ -15,7 +15,7 @@ def test_api_list_requires_auth(client):
 def test_api_create_and_get(admin_client, db_session, normal_user):
     payload = {
         "notif_type": EMAIL,
-        "event": EVENT_ZONE_FAULT,
+        "event": ZONE_FAULT,
         "destination": "foo@bar.com",
         "message": "Msg"
     }
@@ -38,7 +38,7 @@ def test_api_update_and_delete(admin_client, db_session, normal_user):
     notif = NotificationService.create_notification(
         user_id=normal_user.id,
         notif_type=EMAIL,
-        event=EVENT_ZONE_FAULT,
+        event=ZONE_FAULT,
         destination="a@b.com",
         message=""
     )

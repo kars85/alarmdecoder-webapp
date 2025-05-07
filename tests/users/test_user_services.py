@@ -1,4 +1,4 @@
-# tests/users/test_services.py
+# tests/users/test_keypad_services.py
 import pytest
 from ad2web.services.user_service import UserService, DuplicateUserError
 from ad2web.user.models import User

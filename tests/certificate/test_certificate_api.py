@@ -4,7 +4,7 @@ from ad2web.certificate.constants import CA, CLIENT, SERVER, INTERNAL, ACTIVE, R
 from ad2web.services import certificate_service
 
 # Reuse the patch_filesystem fixture from test_views to avoid duplication
-from tests.certificate.test_views import patch_filesystem, setup_certs
+from tests.certificate.test_certificate_views import patch_filesystem, setup_certs
 
 def test_list_certificates_service(setup_certs):
     """certificate_service.list_certificates returns all certs for admin and only own for normal user."""

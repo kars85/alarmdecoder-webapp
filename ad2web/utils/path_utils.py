@@ -1,7 +1,7 @@
 # ad2web/utils/path_utils.py
 
 """Utilities for filesystem paths, directories, and file archiving operations."""
-
+import errno
 import os
 import io
 import tarfile
@@ -14,14 +14,17 @@ INSTANCE_FOLDER_PATH: str = os.path.join('/opt', 'alarmdecoder-webapp', 'instanc
 ALLOWED_AVATAR_EXTENSIONS: set[str] = {'png', 'jpg', 'jpeg', 'gif'}
 
 
-def make_dir(dir_path: str) -> None:
+def make_dir(path: str) -> None:
     """Create a directory at the specified path if it does not already exist."""
     try:
-        if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
-    except Exception as e:
-        # Re-raise any exception to let the caller handle it
-        raise e
+        os.makedirs(path, exist_ok=True)
+    except TypeError:
+        # Python < 3.2 fallback
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
 
 def allowed_file(filename: str) -> bool:

@@ -3,7 +3,8 @@
 import socket
 import struct
 import threading
-import time
+from http.server import BaseHTTPRequestHandler
+from io import BytesIO
 
 from flask import current_app
 from ad2web.settings.models import Setting
@@ -101,3 +102,17 @@ class DiscoveryService:
             self.app.logger.debug(f"DiscoveryService responded to {addr}")
         except Exception as e:
             self.app.logger.error(f"DiscoveryService response failed: {e}", exc_info=True)
+
+class DiscoveryRequest(BaseHTTPRequestHandler):
+    """
+    Parses a raw SSDP M-SEARCH packet into a BaseHTTPRequestHandler-like object.
+    """
+    def __init__(self, request_bytes: bytes):
+        self.rfile = BytesIO(request_bytes)
+        self.raw_requestline = self.rfile.readline()
+        self.error_code = self.error_message = None
+        self.parse_request()
+
+    def send_error(self, code, message):
+        self.error_code = code
+        self.error_message = message

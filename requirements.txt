@@ -74,8 +74,6 @@ python3-openid>=3.2.0
 
 pytz
 
-sh~=2.2.2
-
 six~=1.17.0
 
 slixmpp

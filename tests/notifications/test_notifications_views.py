@@ -1,5 +1,5 @@
 from ad2web.notifications.models import Notification
-from ad2web.notifications.constants import EMAIL, EVENT_ZONE_FAULT
+from ad2web.notifications.constants import EMAIL#, EVENT_ZONE_FAULT
 
 def test_index_requires_login(client):
     """Unauthenticated users are redirected from /settings/notifications."""

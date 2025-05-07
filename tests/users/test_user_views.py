@@ -1,4 +1,4 @@
-# tests/users/test_views.py
+# tests/users/test_keypad_views.py
 import json
 from ad2web.user.models import User
 

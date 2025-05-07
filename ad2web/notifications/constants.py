@@ -221,3 +221,9 @@ XML_EVENT_PROPERTY = """  <e:property>
     <{0}>{1}</{0}>
   </e:property>
 """
+
+ZONE_FAULT = 8
+ZONE_RESTORE = 9
+LOW_BATTERY = 10
+PANIC = 11
+EVENT_ZONE_FAULT = ZONE_FAULT  # Alias for backward compatibility

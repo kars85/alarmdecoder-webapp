@@ -1,5 +1,5 @@
 import pytest
-from ad2web.forms.auth_form import LoginForm, SignupForm, ResetPasswordForm, CreateProfileForm
+from ad2web.forms.auth_form import LoginForm, SignupForm, ResetPasswordForm
 from ad2web.user.models import User
 
 @pytest.mark.parametrize("field, value, error_field", [

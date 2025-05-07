@@ -5,10 +5,12 @@ from ad2web.config import TestConfig
 from ad2web.extensions import db
 from ad2web.user.models import User
 from ad2web.user.constants import ADMIN, USER, ACTIVE
-
+import os
+import tempfile
+import subprocess
 # Patch background threads to prevent them from running during tests
 try:
-    import ad2web.decoder as _dec
+    import ad2web.services.decoder_service as _dec
     setattr(_dec.DecoderService, "start", lambda self: None)
     setattr(_dec.DecoderService, "init", lambda self: None)
 except ImportError:
@@ -19,11 +21,63 @@ try:
 except ImportError:
     pass
 
+class TestConfig:
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    WTF_CSRF_ENABLED = False
+
+    # override the instance folder for *tests* so it can be created under cwd
+    INSTANCE_FOLDER_PATH = os.path.abspath(
+        os.path.join(os.getcwd(), 'instance-test')
+    )
+
+    # also override any other file-system paths you write to:
+    LOG_FOLDER      = os.path.join(INSTANCE_FOLDER_PATH, 'logs')
+    UPLOAD_FOLDER   = os.path.join(INSTANCE_FOLDER_PATH, 'uploads')
+    OPENID_FS_STORE_PATH = os.path.join(INSTANCE_FOLDER_PATH, 'openid_store')
+
 @pytest.fixture(scope="session")
 def app():
-    """Create Flask app with testing config once for all tests."""
-    app = create_app(TestConfig)  # uses in-memory DB, TESTING=True
+    # Tear down any leftover test instance folder, then create a fresh one.
+    inst = TestConfig.INSTANCE_FOLDER_PATH
+    if os.path.exists(inst):
+        if os.name == 'nt':
+            # Windows: rmdir /S /Q
+            subprocess.run(
+            ['cmd', '/c', 'rmdir', '/S', '/Q', inst],
+                check = True,
+                shell = False
+            )
+        else:
+            # Unix-like: rm -rf
+            subprocess.run(
+                ['rm', '-rf', inst],
+                check = True,
+                shell = False
+        )
+
+    app = create_app(TestConfig)
+
     return app
+
+@pytest.fixture(autouse=True)
+def app_context(app):
+    """
+    Push a test_request_context around every test, so FlaskForm
+    and current_app are always available.
+    """
+    with app.test_request_context():
+        yield
+
+@pytest.fixture
+def client(app):
+    """A test client for making requests."""
+    return app.test_client()
+
+@pytest.fixture
+def runner(app):
+    """A Click runner for invoking CLI commands."""
+    return app.test_cli_runner()
 
 @pytest.fixture(scope="function")
 def db_session(app):

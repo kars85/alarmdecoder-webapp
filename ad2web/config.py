@@ -16,20 +16,20 @@ class BaseConfig:
 
     ADMINS = ['youremail@yourdomain.com']
 
-    make_dir(INSTANCE_FOLDER_PATH)
+    #make_dir(INSTANCE_FOLDER_PATH)
 
     # http://flask.pocoo.org/docs/quickstart/#sessions
     SECRET_KEY = 'secret key'
 
     LOG_FOLDER = os.path.join(INSTANCE_FOLDER_PATH, 'logs')
-    make_dir(LOG_FOLDER)
+    #make_dir(LOG_FOLDER)
 
-    # Fild upload, should override in production.
+    # File upload, should override in production.
     # Limited the maximum allowed payload to 16 megabytes.
     # http://flask.pocoo.org/docs/patterns/fileuploads/#improving-uploads
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     UPLOAD_FOLDER = os.path.join(INSTANCE_FOLDER_PATH, 'uploads')
-    make_dir(UPLOAD_FOLDER)
+    #make_dir(UPLOAD_FOLDER)
 
 
 class DefaultConfig(BaseConfig):
@@ -67,7 +67,7 @@ class DefaultConfig(BaseConfig):
 
     # Flask-openid: http://pythonhosted.org/Flask-OpenID/
     OPENID_FS_STORE_PATH = os.path.join(INSTANCE_FOLDER_PATH, 'openid')
-    make_dir(OPENID_FS_STORE_PATH)
+    #make_dir(OPENID_FS_STORE_PATH)
 
     REMEMBER_COOKIE_SECURE = False          # Not actually False.  Depends on the request protocol.
     REMEMBER_COOKIE_HTTPONLY = True

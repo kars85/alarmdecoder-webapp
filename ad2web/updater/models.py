@@ -259,6 +259,11 @@ class WebappUpdater:
         result['restart_required'] = True
         return result
 
+# ad2web/updater/models.py
+
+import os
+import shutil
+
 class SourceUpdater:
     """
     Git-based update system
@@ -270,24 +275,35 @@ class SourceUpdater:
 
         :param name: Name of the component
         :type name: string
+        :param project_url: URL of the remote git repo (optional)
+        :type project_url: string
+        :param path: Local filesystem path of the checkout (optional)
+        :type path: string or None
         """
-
-        self._path = path
-        # Determine if Git is available in PATH
-        git_available = shutil.which('git') is not None
-        if not git_available:
-            self._git_available = False
-        else:
-            self._git_available = True
-
-        self.name = name
-        self.project_url = project_url
-        self._branch = ''
-        self._local_revision = None
+        # Always define these so attribute access never blows up
+        self._git_available   = False
+        self._path            = None
+        self._branch          = ''
+        self._local_revision  = None
         self._remote_revision = None
-        self._commits_ahead = 0
-        self._commits_behind = 0
+        self._commits_ahead   = 0
+        self._commits_behind  = 0
+
+        # Store what was passed in
+        self.name        = name
+        self.project_url = project_url
+        self._path       = path
+
+        # Detect whether 'git' is on PATH
+        if path and shutil.which('git'):
+            self._git_available = True
+        else:
+            self._git_available = False
+
+        # Finally, determine initial enabled/status state
+        # (your existing method, which should gracefully handle no‐git cases)
         self._enabled, self._status = self._check_enabled()
+
 
     @property
     def branch(self):

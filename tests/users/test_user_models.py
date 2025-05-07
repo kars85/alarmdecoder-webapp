@@ -1,4 +1,4 @@
-# tests/users/test_models.py
+# tests/users/test_user_models.py
 from ad2web.user.models import User
 
 def test_password_hashing_and_verification():
