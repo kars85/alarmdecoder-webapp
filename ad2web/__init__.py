@@ -1,28 +1,27 @@
-# ad2web/app.py  (or ad2web/__init__.py if that’s where create_app lives)
-
-from flask import Flask
-# … your other imports …
-from ad2web.views.user_views import users_bp
-from ad2web.views.zone_views import zones_bp
-from ad2web.admin.views import admin_bp
-# Import the SocketIO “decoder” server factory (unchanged)
-from ad2web.decoder import create_decoder_socket
-# Import your new service
-from .services.decoder_service import DecoderService
-from ad2web.discovery import init_discovery, start_discovery
-from .config import DefaultConfig, TestConfig  # etc.
-from .utils.path_utils import make_dir, INSTANCE_FOLDER_PATH
-from flask import Flask
-from .config import DefaultConfig
-from .utils.path_utils import make_dir, INSTANCE_FOLDER_PATH
 import os
-# Import your blueprints, services, etc.
-from ad2web.views.user_views import users_bp
-from ad2web.views.zone_views import zones_bp
-from ad2web.admin.views import admin_bp
+from flask import Flask
+
+from .config import DefaultConfig, TestConfig
+from .utils.path_utils import make_dir, INSTANCE_FOLDER_PATH
 from ad2web.decoder import create_decoder_socket
 from .services.decoder_service import DecoderService
 from ad2web.discovery import init_discovery, start_discovery
+
+# Import Blueprints from views
+from ad2web.views.auth_views import auth
+from ad2web.views.user_views import users_bp
+from ad2web.views.zone_views import zones_bp
+from ad2web.views.admin_views import admin
+from ad2web.views.settings_views import settings
+from ad2web.views.log_views import log
+from ad2web.views.notification_views import notification_bp
+from ad2web.views.certificate_views import certificate
+from ad2web.views.api_views import api_bp
+from ad2web.views.keypad_views import keypad
+from ad2web.views.setup_views import setup
+from ad2web.views.camera_views import cameras_bp
+from ad2web.views.updater_views import updater_bp
+
 
 def create_app(config_object=None):
     # 1) Create the Flask app, pointing instance_relative_config at INSTANCE_FOLDER_PATH
@@ -48,9 +47,19 @@ def create_app(config_object=None):
     #    e.g. db.init_app(app), mail.init_app(app), etc.
 
     # 5) Register blueprints
-    app.register_blueprint(users_bp, url_prefix='/settings/users')
-    app.register_blueprint(zones_bp, url_prefix='/settings/zones')
-    app.register_blueprint(admin_bp, url_prefix='/settings/admin')
+    app.register_blueprint(auth)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(zones_bp)
+    app.register_blueprint(admin)
+    app.register_blueprint(settings)
+    app.register_blueprint(log)
+    app.register_blueprint(notification_bp)
+    app.register_blueprint(certificate)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(keypad)
+    app.register_blueprint(setup)
+    app.register_blueprint(cameras_bp)
+    app.register_blueprint(updater_bp)
     # …and any others…
 
     # 6) Set up your DecoderService
