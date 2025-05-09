@@ -46,7 +46,7 @@ def create_app(config_object=None):
     # 4) Initialize extensions, login manager, etc. (if you have them)
     #    e.g. db.init_app(app), mail.init_app(app), etc.
 
-    # 5) Register blueprints
+    # 5) Register blueprint for /views/ modules
     app.register_blueprint(auth)
     app.register_blueprint(users_bp)
     app.register_blueprint(zones_bp)
