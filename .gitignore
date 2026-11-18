@@ -58,3 +58,8 @@ webapp.sublime-*
 !/.agents/skills/alarmdecoder-webapp-intake
 !/.claude/skills/alarmdecoder-webapp-intake
 !/scripts/test_agent_workflow.py
+
+# Machine-local agent credentials and generated Python state
+.claude/settings.local.json
+.claude/agent-memory/
+__pycache__/
