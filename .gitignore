@@ -27,3 +27,34 @@ openid
 env
 temp
 webapp.sublime-*
+
+# Local agent runtime and credentials
+.empirica/
+.abc-state/
+.env
+.env.local
+.env.*.local
+
+# Discoverable project-owned workflow files
+!/.agent-workflow.json
+!/.claude/
+!/.claude/commands/
+!/.claude/commands/abc.md
+!/.claude/commands/intake.md
+!/.claude/skills/
+!/.agents/
+!/.agents/skills/
+!/skills/
+!/scripts/
+!/scripts/agent-workflow.py
+!/docs/
+!/docs/agent-workflow.md
+!/skills/alarmdecoder-webapp-abc/
+!/skills/alarmdecoder-webapp-abc/SKILL.md
+!/.agents/skills/alarmdecoder-webapp-abc
+!/.claude/skills/alarmdecoder-webapp-abc
+!/skills/alarmdecoder-webapp-intake/
+!/skills/alarmdecoder-webapp-intake/SKILL.md
+!/.agents/skills/alarmdecoder-webapp-intake
+!/.claude/skills/alarmdecoder-webapp-intake
+!/scripts/test_agent_workflow.py

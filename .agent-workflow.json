@@ -1,0 +1,14 @@
+{
+  "name": "alarmdecoder-webapp",
+  "repository": "kars85/alarmdecoder-webapp",
+  "project_id": "de306134-7a66-4776-82c0-24d071ad3147",
+  "description": "Legacy AlarmDecoder web interface",
+  "skills": [
+    "alarmdecoder-webapp-abc",
+    "alarmdecoder-webapp-intake"
+  ],
+  "verification_commands": [],
+  "verification_note": "Python 2.7 legacy application: do not claim Python 3 tests pass. Read docs/modernization-plan.md and coordinate ser2sock, TLS and device changes with both consumers.",
+  "ci_workflows": [],
+  "setup_issue": "https://github.com/kars85/alarmdecoder-webapp/issues/1"
+}
