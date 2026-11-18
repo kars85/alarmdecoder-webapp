@@ -7,8 +7,12 @@
     "alarmdecoder-webapp-abc",
     "alarmdecoder-webapp-intake"
   ],
-  "verification_commands": [],
+  "verification_commands": [
+    "python3 -m unittest discover -s scripts -p 'test_agent_workflow.py'"
+  ],
   "verification_note": "Python 2.7 legacy application: do not claim Python 3 tests pass. Read docs/modernization-plan.md and coordinate ser2sock, TLS and device changes with both consumers.",
-  "ci_workflows": [],
+  "ci_workflows": [
+    ".github/workflows/agent-workflow.yml"
+  ],
   "setup_issue": "https://github.com/kars85/alarmdecoder-webapp/issues/1"
 }
