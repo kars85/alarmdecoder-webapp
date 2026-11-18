@@ -22,7 +22,7 @@ C (Claude PM/reviewer): inspect the actual diff against acceptance criteria, rev
 
 ## Project verification and boundaries
 
-Python 2.7 legacy application: do not claim Python 3 tests pass. Read docs/modernization-plan.md and coordinate ser2sock, TLS and device changes with both consumers.
+Legacy Python 2.7 application: read README.md, ad2web/decoder.py and ad2web/ser2sock/ser2sock.py for runtime and device contracts. Keep the workflow helper/tests on Python 3; their success does not establish application compatibility. Coordinate ser2sock and TLS changes with the alarmdecoder library and ad-mqtt consumers; avoid a partial modernization.
 
 Application/hardware checks: no universal application or device gate exists. Select the owning runbook or target build/validation procedure and record its exact command and limitations in PM-HANDOFF.
 
