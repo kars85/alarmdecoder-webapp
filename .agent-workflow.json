@@ -1,0 +1,18 @@
+{
+  "name": "alarmdecoder-webapp",
+  "repository": "kars85/alarmdecoder-webapp",
+  "project_id": "de306134-7a66-4776-82c0-24d071ad3147",
+  "description": "Legacy AlarmDecoder web interface",
+  "skills": [
+    "alarmdecoder-webapp-abc",
+    "alarmdecoder-webapp-intake"
+  ],
+  "verification_commands": [
+    "python3 -c 'import yaml' && python3 scripts/test_agent_workflow.py"
+  ],
+  "verification_note": "Legacy Python 2.7 application: read README.md, ad2web/decoder.py and ad2web/ser2sock/ser2sock.py for runtime and device contracts. Keep the workflow helper/tests on Python 3; their success does not establish application compatibility. Coordinate ser2sock and TLS changes with the alarmdecoder library and ad-mqtt consumers; avoid a partial modernization.",
+  "ci_workflows": [
+    ".github/workflows/agent-workflow.yml"
+  ],
+  "setup_issue": "https://github.com/kars85/alarmdecoder-webapp/issues/1"
+}
